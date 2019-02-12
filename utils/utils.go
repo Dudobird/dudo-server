@@ -20,6 +20,13 @@ func NewMessage(status int, message string) *Message {
 	}
 }
 
+// JSONMessageWithData send back status and data
+func JSONMessageWithData(w http.ResponseWriter, status int, text string, data interface{}) {
+	message := NewMessage(status, text)
+	message.Data = data
+	JSONResonseWithMessage(w, message)
+}
+
 // JSONRespnseWithTextMessage will send back with status and a simple text message
 func JSONRespnseWithTextMessage(w http.ResponseWriter, status int, text string) {
 	message := NewMessage(status, text)

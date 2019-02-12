@@ -33,3 +33,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	message := models.Login(account.Email, account.Password)
 	utils.JSONResonseWithMessage(w, message)
 }
+
+// Logout will logout user and delete the token infomation
+func Logout(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// Refresh token will refresh user token reset the expire date
+func Refresh(w http.ResponseWriter, r *http.Request) {
+
+}

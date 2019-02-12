@@ -5,22 +5,17 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/mux"
-	"github.com/zhangmingkai4315/dudo-server/auth"
-	"github.com/zhangmingkai4315/dudo-server/controllers"
+	"github.com/zhangmingkai4315/dudo-server/routers"
 )
 
 func main() {
-	router := mux.NewRouter()
-	router.Use(auth.JWTAuthentication)
-	router = controllers.Init(router)
-
+	router := routers.InitRouters()
 	port := os.Getenv("server_port")
 	if port == "" {
 		port = "8080"
 	}
 	log.Printf("Info: server will listen at :%s\n", port)
-	err := http.ListenAndServe(":"+port, router)
+	err = http.ListenAndServe(":"+port, router)
 	if err != nil {
 		log.Panicln("Error:", err)
 	}
