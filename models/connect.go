@@ -3,25 +3,21 @@ package models
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/joho/godotenv"
+	"github.com/zhangmingkai4315/dudo-server/config"
 )
 
 var db *gorm.DB
 
-func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Panicf("Error: %s", err)
-	}
-	username := os.Getenv("db_user")
-	password := os.Getenv("db_pass")
-	dbName := os.Getenv("db_name")
-	dbHost := os.Getenv("db_host")
-	dbPort := os.Getenv("db_port")
+func initConnection() {
+	config := config.GetConfig()
+	username := config.Database.Username
+	password := config.Database.Password
+	dbName := config.Database.DBName
+	dbHost := config.Database.Host
+	dbPort := config.Database.Port
 	dbURI := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", username, password, dbHost, dbPort, dbName)
 
 	log.Printf("Info: connection uri %s\n", dbURI)
@@ -35,5 +31,8 @@ func init() {
 
 // GetDB will return a local db variable which init before
 func GetDB() *gorm.DB {
+	if db == nil {
+		initConnection()
+	}
 	return db
 }

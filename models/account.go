@@ -2,8 +2,9 @@ package models
 
 import (
 	"net/http"
-	"os"
 	"strings"
+
+	"github.com/zhangmingkai4315/dudo-server/config"
 
 	"github.com/zhangmingkai4315/dudo-server/utils"
 
@@ -49,6 +50,7 @@ func (account *Account) Validate() (int, string) {
 
 // Create will valid user infomation and create it
 func (account *Account) Create() *utils.Message {
+	tokenSecret := config.GetConfig().Application.Token
 	if status, message := account.Validate(); status != http.StatusOK {
 		return utils.NewMessage(status, message)
 	}
@@ -61,7 +63,7 @@ func (account *Account) Create() *utils.Message {
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
 	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), &Token{UserID: account.ID})
-	tokenString, err := token.SignedString([]byte(os.Getenv("token_password")))
+	tokenString, err := token.SignedString([]byte(tokenSecret))
 	if err != nil {
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
@@ -77,6 +79,7 @@ func (account *Account) Create() *utils.Message {
 // or return forbidden etc message
 func Login(email, password string) *utils.Message {
 	account := &Account{}
+	tokenSecret := config.GetConfig().Application.Token
 	err := GetDB().Table("accounts").Where("email = ?", email).First(account).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -93,7 +96,7 @@ func Login(email, password string) *utils.Message {
 	account.Password = ""
 
 	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), &Token{UserID: account.ID})
-	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
+	tokenString, _ := token.SignedString([]byte(tokenSecret))
 	account.Token = tokenString
 
 	message := utils.NewMessage(http.StatusOK, "login success")

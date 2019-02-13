@@ -3,8 +3,9 @@ package auth
 import (
 	"context"
 	"net/http"
-	"os"
 	"strings"
+
+	"github.com/zhangmingkai4315/dudo-server/config"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/zhangmingkai4315/dudo-server/models"
@@ -22,6 +23,8 @@ var (
 // it will stop the request when jwt authencticate is fail
 func JWTAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		config := config.GetConfig()
+		tokenSecrect := config.Application.Token
 		requestPath := r.URL.Path
 		for _, url := range guestURL {
 			if url == requestPath {
@@ -44,7 +47,7 @@ func JWTAuthentication(next http.Handler) http.Handler {
 		userToken := &models.Token{}
 
 		token, err := jwt.ParseWithClaims(tokenFromHeader, userToken, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("TOKEN_SECRET")), nil
+			return []byte(tokenSecrect), nil
 		})
 
 		if err != nil {
