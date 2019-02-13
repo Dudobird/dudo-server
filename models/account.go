@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/zhangmingkai4315/dudo-server/config"
 
 	"github.com/zhangmingkai4315/dudo-server/utils"
@@ -40,6 +41,7 @@ func (account *Account) Validate() (int, string) {
 
 	err := GetDB().Table("accounts").Where("email=?", account.Email).First(temp).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
+		log.Errorln(err)
 		return http.StatusServiceUnavailable, "server unavailable"
 	}
 	if temp.Email != "" {
@@ -60,11 +62,13 @@ func (account *Account) Create() *utils.Message {
 
 	GetDB().Create(account)
 	if account.ID <= 0 {
+		log.Errorf("server create account fail for %s", account.Email)
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
 	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), &Token{UserID: account.ID})
 	tokenString, err := token.SignedString([]byte(tokenSecret))
 	if err != nil {
+		log.Errorf("server create account fail for %s", account.Email)
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
 	account.Token = tokenString
@@ -85,6 +89,7 @@ func Login(email, password string) *utils.Message {
 		if err == gorm.ErrRecordNotFound {
 			return utils.NewMessage(http.StatusNotFound, "email not found")
 		}
+		log.Errorf("user login fail for %s", email)
 		return utils.NewMessage(http.StatusInternalServerError, "server unavailable")
 	}
 

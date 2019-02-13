@@ -1,9 +1,8 @@
 package config
 
 import (
-	"log"
-
 	"github.com/BurntSushi/toml"
+	log "github.com/sirupsen/logrus"
 )
 
 // Config store all config items
@@ -31,9 +30,9 @@ var config *Config
 // LoadConfig return the config object and
 // decode the file when first run
 func LoadConfig(file string) *Config {
-	log.Println("Info: Read config from ", file)
+	log.Infof("read config from %s", file)
 	if _, err := toml.DecodeFile(file, &config); err != nil {
-		log.Panicf("Error: %s", err)
+		log.Fatalf("Error: %s", err)
 	}
 	return config
 }

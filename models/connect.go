@@ -2,7 +2,8 @@ package models
 
 import (
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -19,12 +20,11 @@ func initConnection() {
 	dbHost := config.Database.Host
 	dbPort := config.Database.Port
 	dbURI := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", username, password, dbHost, dbPort, dbName)
-
-	log.Printf("Info: connection uri %s\n", dbURI)
 	conn, err := gorm.Open("mysql", dbURI)
 	if err != nil {
-		log.Panicf("Error: %s", err)
+		log.Fatalln(err)
 	}
+	log.Infoln("connect database success")
 	db = conn
 	db.Debug().AutoMigrate(&Account{})
 }
