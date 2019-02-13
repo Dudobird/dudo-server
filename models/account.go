@@ -2,7 +2,6 @@ package models
 
 import (
 	"net/http"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zhangmingkai4315/dudo-server/config"
@@ -12,6 +11,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
+	validator "gopkg.in/go-playground/validator.v9"
 )
 
 // Token contains the user authenticate information
@@ -29,32 +29,35 @@ type Account struct {
 }
 
 // Validate will check if the user registe info is correct
-func (account *Account) Validate() (int, string) {
-	if !strings.Contains(account.Email, "@") {
-		return http.StatusBadRequest, "email address is require"
+func (account *Account) Validate() (bool, string) {
+	validate := validator.New()
+	err := validate.Var(account.Email, "required,email")
+	if err != nil {
+		return false, "email address is require"
+	}
+	err = validate.Var(account.Password, "required")
+	if err != nil {
+		return false, "password is required"
 	}
 
-	if len(account.Password) < 6 {
-		return http.StatusBadRequest, "password is required"
-	}
 	temp := &Account{}
 
-	err := GetDB().Table("accounts").Where("email=?", account.Email).First(temp).Error
+	err = GetDB().Table("accounts").Where("email=?", account.Email).First(temp).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		log.Errorln(err)
-		return http.StatusServiceUnavailable, "server unavailable"
+		return false, "server unavailable"
 	}
 	if temp.Email != "" {
-		return http.StatusBadRequest, "email is already in use"
+		return false, "email is already in use"
 	}
-	return http.StatusOK, "validate success"
+	return true, "validate success"
 }
 
 // Create will valid user infomation and create it
 func (account *Account) Create() *utils.Message {
 	tokenSecret := config.GetConfig().Application.Token
-	if status, message := account.Validate(); status != http.StatusOK {
-		return utils.NewMessage(status, message)
+	if status, message := account.Validate(); status != true {
+		return utils.NewMessage(http.StatusBadRequest, message)
 	}
 
 	hashedPasswd, _ := bcrypt.GenerateFromPassword([]byte(account.Password), bcrypt.DefaultCost)

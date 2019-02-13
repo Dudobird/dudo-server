@@ -29,12 +29,14 @@ var config *Config
 
 // LoadConfig return the config object and
 // decode the file when first run
-func LoadConfig(file string) *Config {
+func LoadConfig(file string) (*Config, error) {
 	log.Infof("read config from %s", file)
 	if _, err := toml.DecodeFile(file, &config); err != nil {
-		log.Fatalf("Error: %s", err)
+		log.Errorf("Error: %s", err)
+		return nil, err
 	}
-	return config
+	log.Infoln("load config success")
+	return config, nil
 }
 
 // GetConfig return the config object

@@ -12,27 +12,34 @@ import (
 
 var db *gorm.DB
 
-func initConnection() {
+// InitConnection connect database
+func InitConnection() (*gorm.DB, error) {
+	var err error
 	config := config.GetConfig()
 	username := config.Database.Username
 	password := config.Database.Password
 	dbName := config.Database.DBName
 	dbHost := config.Database.Host
 	dbPort := config.Database.Port
-	dbURI := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", username, password, dbHost, dbPort, dbName)
-	conn, err := gorm.Open("mysql", dbURI)
+	dbURI := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		username,
+		password,
+		dbHost,
+		dbPort,
+		dbName,
+	)
+	db, err = gorm.Open("mysql", dbURI)
 	if err != nil {
-		log.Fatalln(err)
+		log.Errorln(err)
+		return nil, err
 	}
 	log.Infoln("connect database success")
-	db = conn
-	db.Debug().AutoMigrate(&Account{})
+	db.AutoMigrate(&Account{})
+	return db, nil
 }
 
 // GetDB will return a local db variable which init before
 func GetDB() *gorm.DB {
-	if db == nil {
-		initConnection()
-	}
 	return db
 }

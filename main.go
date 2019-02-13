@@ -2,12 +2,10 @@ package main
 
 import (
 	"flag"
-	"net/http"
 	"os"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/zhangmingkai4315/dudo-server/config"
-	"github.com/zhangmingkai4315/dudo-server/routers"
+	"github.com/zhangmingkai4315/dudo-server/core"
 )
 
 var configFile string
@@ -20,12 +18,6 @@ func init() {
 
 func main() {
 	flag.Parse()
-	config := config.LoadConfig(configFile)
-	router := routers.LoadRouters()
-	hostAndPort := config.Application.ListenAt
-	log.Println("server will listen at ", hostAndPort)
-	err := http.ListenAndServe(hostAndPort, router)
-	if err != nil {
-		log.Fatal(err)
-	}
+	app := core.NewApp(configFile)
+	app.Run()
 }

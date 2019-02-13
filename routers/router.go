@@ -1,6 +1,8 @@
 package routers
 
 import (
+	"fmt"
+
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/zhangmingkai4315/dudo-server/auth"
@@ -9,14 +11,29 @@ import (
 
 // LoadRouters will registe all controllers to router and return it
 // we will call this method in main function
-func LoadRouters() *mux.Router {
-	router := mux.NewRouter()
+func LoadRouters() (router *mux.Router, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			err, ok = r.(error)
+			if !ok {
+				err = fmt.Errorf("panic: %v", r)
+			}
+		}
+	}()
+	router = mux.NewRouter()
+	// router.Use(Logger)
 	router.Use(auth.JWTAuthentication)
-	router.HandleFunc("/api/user/new", controllers.CreateAccount).Methods("POST")
-	router.HandleFunc("/api/user/login", controllers.Login).Methods("POST")
-	log.Infoln("Load routers success")
+	router.HandleFunc("/api/user", controllers.CreateAccount).Methods("POST")
+	router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("PUT")
+	router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("DELETE")
+	router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("GET")
+	router.HandleFunc("/api/users", controllers.CreateAccount).Methods("GET")
+
+	router.HandleFunc("/api/auth/login", controllers.Login).Methods("POST")
+	log.Infoln("load api routers success")
 	// // static files
 	// router.Handle("/", http.FileServer(http.Dir("../frontend/")))
 	// router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("../frontend/static/"))))
-	return router
+	return
 }
