@@ -14,8 +14,8 @@ import (
 
 var (
 	guestURL = []string{
-		"/api/user/new",
-		"/api/user/login",
+		"/api/auth/signup",
+		"/api/auth/signin",
 	}
 )
 

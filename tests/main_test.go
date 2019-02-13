@@ -10,5 +10,6 @@ func TestMain(m *testing.M) {
 	CreateTables(app)
 	code := m.Run()
 	CleanTables(app)
+	app.DB.Close()
 	os.Exit(code)
 }

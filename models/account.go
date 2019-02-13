@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -25,7 +26,20 @@ type Account struct {
 	gorm.Model
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	Token    string `json:"token";sql:"-"`
+	Token    string `json:"token" sql:"-"`
+}
+
+func (account *Account) CheckIfEmailExist() (bool, error) {
+	temp := &Account{}
+	err := GetDB().Table("accounts").Where("email=?", account.Email).First(temp).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log.Errorln(err)
+		return false, errors.New("server unavailable")
+	}
+	if temp.Email != "" {
+		return true, errors.New("email is already in use")
+	}
+	return false, nil
 }
 
 // Validate will check if the user registe info is correct
@@ -40,16 +54,6 @@ func (account *Account) Validate() (bool, string) {
 		return false, "password is required"
 	}
 
-	temp := &Account{}
-
-	err = GetDB().Table("accounts").Where("email=?", account.Email).First(temp).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		log.Errorln(err)
-		return false, "server unavailable"
-	}
-	if temp.Email != "" {
-		return false, "email is already in use"
-	}
 	return true, "validate success"
 }
 
@@ -59,7 +63,9 @@ func (account *Account) Create() *utils.Message {
 	if status, message := account.Validate(); status != true {
 		return utils.NewMessage(http.StatusBadRequest, message)
 	}
-
+	if status, err := account.CheckIfEmailExist(); status == true || err != nil {
+		return utils.NewMessage(http.StatusBadRequest, err.Error())
+	}
 	hashedPasswd, _ := bcrypt.GenerateFromPassword([]byte(account.Password), bcrypt.DefaultCost)
 	account.Password = string(hashedPasswd)
 

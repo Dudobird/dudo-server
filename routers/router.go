@@ -22,15 +22,15 @@ func LoadRouters() (router *mux.Router, err error) {
 		}
 	}()
 	router = mux.NewRouter()
-	// router.Use(Logger)
 	router.Use(auth.JWTAuthentication)
-	router.HandleFunc("/api/user", controllers.CreateAccount).Methods("POST")
-	router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("PUT")
-	router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("DELETE")
-	router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("GET")
+	router.HandleFunc("/api/auth/signup", controllers.CreateAccount).Methods("POST")
+	router.HandleFunc("/api/auth/signin", controllers.Login).Methods("POST")
+
+	// router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("PUT")
+	// router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("DELETE")
+	// router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("GET")
 	router.HandleFunc("/api/users", controllers.CreateAccount).Methods("GET")
 
-	router.HandleFunc("/api/auth/login", controllers.Login).Methods("POST")
 	log.Infoln("load api routers success")
 	// // static files
 	// router.Handle("/", http.FileServer(http.Dir("../frontend/")))
