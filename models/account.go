@@ -93,6 +93,14 @@ func (account *Account) Create() *utils.Message {
 func Login(email, password string) *utils.Message {
 	account := &Account{}
 	tokenSecret := config.GetConfig().Application.Token
+	tempAccout := &Account{
+		Email:    email,
+		Password: password,
+	}
+	// check the input again, if not correct no need for sql query
+	if status, message := tempAccout.Validate(); status != true {
+		return utils.NewMessage(http.StatusBadRequest, message)
+	}
 	err := GetDB().Table("accounts").Where("email = ?", email).First(account).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
