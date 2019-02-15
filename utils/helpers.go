@@ -1,5 +1,7 @@
 package utils
 
+// helpers.go include some test helper functions
+
 import (
 	"fmt"
 	"path/filepath"
