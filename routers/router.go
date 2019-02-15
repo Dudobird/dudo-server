@@ -25,11 +25,8 @@ func LoadRouters() (router *mux.Router, err error) {
 	router.Use(auth.JWTAuthentication)
 	router.HandleFunc("/api/auth/signup", controllers.CreateAccount).Methods("POST")
 	router.HandleFunc("/api/auth/signin", controllers.Login).Methods("POST")
-
-	// router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("PUT")
-	// router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("DELETE")
-	// router.HandleFunc("/api/user/{id}", controllers.CreateAccount).Methods("GET")
-	router.HandleFunc("/api/users", controllers.CreateAccount).Methods("GET")
+	router.HandleFunc("/api/auth/logout", controllers.Logout).Methods("GET")
+	router.HandleFunc("/api/auth/password", controllers.UpdatePassword).Methods("UPDATE")
 
 	log.Infoln("load api routers success")
 	// // static files

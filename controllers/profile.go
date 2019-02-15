@@ -7,13 +7,14 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/zhangmingkai4315/dudo-server/auth"
 	"github.com/zhangmingkai4315/dudo-server/models"
 	"github.com/zhangmingkai4315/dudo-server/utils"
 )
 
 // CreateProfile for create user profile
 func CreateProfile(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user").(uint)
+	user := r.Context().Value(auth.TokenContextKey).(uint)
 	profile := &models.Profile{}
 
 	err := json.NewDecoder(r.Body).Decode(profile)

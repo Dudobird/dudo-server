@@ -2,7 +2,9 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zhangmingkai4315/dudo-server/config"
@@ -29,6 +31,13 @@ type Account struct {
 	Token    string `json:"token" sql:"-"`
 }
 
+// ToJSONBytes will format the accout information to json []byte
+func (account *Account) ToJSONBytes() []byte {
+	return []byte(fmt.Sprintf(`{"email":"%s","password":"%s"}`, account.Email, account.Password))
+}
+
+// CheckIfEmailExist return true if email already exist in database
+// return error != nil when sever query fail
 func (account *Account) CheckIfEmailExist() (bool, error) {
 	temp := &Account{}
 	err := GetDB().Table("accounts").Where("email=?", account.Email).First(temp).Error
@@ -42,14 +51,25 @@ func (account *Account) CheckIfEmailExist() (bool, error) {
 	return false, nil
 }
 
+func accountValidate(validate *validator.Validate, field string, value string) error {
+	switch field {
+	case "email":
+		return validate.Var(value, "required,email")
+	case "password":
+		return validate.Var(value, "required")
+	default:
+		return nil
+	}
+}
+
 // Validate will check if the user registe info is correct
 func (account *Account) Validate() (bool, string) {
 	validate := validator.New()
-	err := validate.Var(account.Email, "required,email")
+	err := accountValidate(validate, "email", account.Email)
 	if err != nil {
 		return false, "email address is require"
 	}
-	err = validate.Var(account.Password, "required")
+	err = accountValidate(validate, "password", account.Email)
 	if err != nil {
 		return false, "password is required"
 	}
@@ -57,9 +77,23 @@ func (account *Account) Validate() (bool, string) {
 	return true, "validate success"
 }
 
+func (account *Account) createToken() (string, error) {
+	tokenSecret := config.GetConfig().Application.Token
+	token := jwt.NewWithClaims(
+		jwt.GetSigningMethod("HS256"),
+		&Token{
+			UserID: account.ID,
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+			},
+		},
+	)
+	return token.SignedString([]byte(tokenSecret))
+
+}
+
 // Create will valid user infomation and create it
 func (account *Account) Create() *utils.Message {
-	tokenSecret := config.GetConfig().Application.Token
 	if status, message := account.Validate(); status != true {
 		return utils.NewMessage(http.StatusBadRequest, message)
 	}
@@ -74,13 +108,11 @@ func (account *Account) Create() *utils.Message {
 		log.Errorf("server create account fail for %s", account.Email)
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
-	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), &Token{UserID: account.ID})
-	tokenString, err := token.SignedString([]byte(tokenSecret))
+	token, err := account.createToken()
 	if err != nil {
-		log.Errorf("server create account fail for %s", account.Email)
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
-	account.Token = tokenString
+	account.Token = token
 	account.Password = ""
 	message := utils.NewMessage(http.StatusCreated, "account create success")
 	message.Data = account
@@ -126,11 +158,48 @@ func Login(email, password string) *utils.Message {
 	return message
 }
 
-// GetUser return user infomation based userid
-func GetUser(userID uint) *Account {
+// Logout user will delete the user token from database
+func Logout(userID uint) *utils.Message {
 	account := &Account{}
 	GetDB().Table("accounts").Where("id = ?", userID).First(account)
 	if account.Email == "" {
+		return utils.NewMessage(http.StatusNotFound, "user not found")
+	}
+	account.Token = ""
+	return utils.NewMessage(http.StatusOK, "logout user success")
+}
+
+// UpdatePassword update the user password
+func UpdatePassword(userID uint, password, newPassword string) *utils.Message {
+	validate := validator.New()
+	if err := accountValidate(validate, "password", newPassword); err != nil {
+		return utils.NewMessage(http.StatusBadRequest, "new password format error")
+	}
+
+	account := &Account{}
+	err := GetDB().Table("accounts").Where("id = ?", userID).First(account).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return utils.NewMessage(http.StatusNotFound, "user not found")
+		}
+		log.Errorf("user login fail for %v", err)
+		return utils.NewMessage(http.StatusInternalServerError, "server unavailable")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(password))
+	if err != nil {
+		return utils.NewMessage(http.StatusForbidden, "password not correct")
+	}
+	hashedPasswd, _ := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	account.Password = string(hashedPasswd)
+	return utils.NewMessage(http.StatusOK, "update password success")
+}
+
+// GetUser return user infomation based userid
+func GetUser(userID uint) *Account {
+	account := &Account{}
+	err := GetDB().Table("accounts").Where("id = ?", userID).First(account).Error
+	if err != nil {
 		return nil
 	}
 	account.Password = ""

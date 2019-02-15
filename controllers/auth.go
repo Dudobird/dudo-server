@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/zhangmingkai4315/dudo-server/auth"
+
 	"github.com/zhangmingkai4315/dudo-server/models"
 	"github.com/zhangmingkai4315/dudo-server/utils"
 )
@@ -21,8 +23,8 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 // Login will get user email and password from json object
-// return user account information when success, or send back
-// some error message
+// if user authentication information is correct, send back 200
+// else send 403 forbidden
 func Login(w http.ResponseWriter, r *http.Request) {
 	account := &models.Account{}
 	err := json.NewDecoder(r.Body).Decode(account)
@@ -35,11 +37,33 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // Logout will logout user and delete the token infomation
+// if user token not correct, send 401 unauthorization
+// else send 200 logout success
 func Logout(w http.ResponseWriter, r *http.Request) {
-
+	user := r.Context().Value(auth.TokenContextKey).(uint)
+	message := models.Logout(user)
+	utils.JSONResonseWithMessage(w, message)
 }
 
-// Refresh token will refresh user token reset the expire date
-func Refresh(w http.ResponseWriter, r *http.Request) {
+type receivePasswordInfo struct {
+	Password    string `json:"password"`
+	NewPassword string `json:"new_password"`
+}
 
+// UpdatePassword will update user password
+// and user must send the new password and old password together
+// if user token not correct, send 401 unauthorization
+// else if old password not correct send 403 forbidden
+// else if old password is correct but new password validate fail it will send 400
+// else send 200 update success
+func UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(auth.TokenContextKey).(uint)
+	tempAccout := &receivePasswordInfo{}
+	err := json.NewDecoder(r.Body).Decode(tempAccout)
+	if err != nil {
+		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "request data invalid")
+		return
+	}
+	message := models.UpdatePassword(userID, tempAccout.Password, tempAccout.NewPassword)
+	utils.JSONResonseWithMessage(w, message)
 }
