@@ -8,14 +8,14 @@ A private cloud file storage server based on minio
 ```sh
 # windows版本
 # 需要在docker desktop的设置中启动共享存储，这里将的e盘共享用于数据存储
-$ docker run --name dudo-mysql -p 3306:3306  -v e:/docker/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=root -d mysql:5.6 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+$ docker run --name dudo-mysql -p 3306:3306  -v {数据库本地存储目录}:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=root -d mysql:5.6 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 $ winpty docker exec -it $(docker ps --filter "name=dudo-mysql" -q) sh
 
 ```
 ##### Linux 版本下的启动方式
 
 ```sh
-$ docker run --name dudo-mysql -p 3306:3306  -v ./docker/mysql-data/:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=root -d mysql:5.6 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+$ docker run --name dudo-mysql -p 3306:3306  -v {数据库本地存储目录}:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=root -d mysql:5.6 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 $ docker exec -it $(docker ps --filter "name=dudo-mysql" -q) sh
 
 ```

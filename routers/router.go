@@ -5,8 +5,8 @@ import (
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"github.com/zhangmingkai4315/dudo-server/auth"
-	"github.com/zhangmingkai4315/dudo-server/controllers"
+	"github.com/Dudobird/dudo-server/auth"
+	"github.com/Dudobird/dudo-server/controllers"
 )
 
 // LoadRouters will registe all controllers to router and return it

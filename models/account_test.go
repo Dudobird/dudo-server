@@ -3,7 +3,7 @@ package models
 import (
 	"testing"
 
-	"github.com/zhangmingkai4315/dudo-server/utils"
+	"github.com/Dudobird/dudo-server/utils"
 )
 
 func TestValidate(t *testing.T) {

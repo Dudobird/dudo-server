@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"github.com/jinzhu/gorm"
-	"github.com/zhangmingkai4315/dudo-server/models"
+	"github.com/Dudobird/dudo-server/models"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
-	"github.com/zhangmingkai4315/dudo-server/config"
-	"github.com/zhangmingkai4315/dudo-server/routers"
+	"github.com/Dudobird/dudo-server/config"
+	"github.com/Dudobird/dudo-server/routers"
 )
 
 // App is the manager of this application

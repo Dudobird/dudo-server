@@ -5,7 +5,7 @@ import (
 	"os"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/zhangmingkai4315/dudo-server/core"
+	"github.com/Dudobird/dudo-server/core"
 )
 
 var configFile string

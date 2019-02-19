@@ -1,8 +1,8 @@
 package tests
 
 import (
-	"github.com/zhangmingkai4315/dudo-server/core"
-	"github.com/zhangmingkai4315/dudo-server/models"
+	"github.com/Dudobird/dudo-server/core"
+	"github.com/Dudobird/dudo-server/models"
 )
 
 var app *core.App

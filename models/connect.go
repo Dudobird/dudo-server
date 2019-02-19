@@ -8,7 +8,7 @@ import (
 	"github.com/jinzhu/gorm"
 	// mysql driver
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/zhangmingkai4315/dudo-server/config"
+	"github.com/Dudobird/dudo-server/config"
 )
 
 var db *gorm.DB

@@ -7,9 +7,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/zhangmingkai4315/dudo-server/auth"
-	"github.com/zhangmingkai4315/dudo-server/models"
-	"github.com/zhangmingkai4315/dudo-server/utils"
+	"github.com/Dudobird/dudo-server/auth"
+	"github.com/Dudobird/dudo-server/models"
+	"github.com/Dudobird/dudo-server/utils"
 )
 
 // CreateProfile for create user profile

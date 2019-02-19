@@ -7,9 +7,9 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/zhangmingkai4315/dudo-server/config"
+	"github.com/Dudobird/dudo-server/config"
 
-	"github.com/zhangmingkai4315/dudo-server/utils"
+	"github.com/Dudobird/dudo-server/utils"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
