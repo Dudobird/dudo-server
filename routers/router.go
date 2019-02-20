@@ -4,9 +4,10 @@ import (
 	"fmt"
 
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+
 	"github.com/Dudobird/dudo-server/auth"
 	"github.com/Dudobird/dudo-server/controllers"
+	log "github.com/sirupsen/logrus"
 )
 
 // LoadRouters will registe all controllers to router and return it
@@ -27,7 +28,6 @@ func LoadRouters() (router *mux.Router, err error) {
 	router.HandleFunc("/api/auth/signin", controllers.Login).Methods("POST")
 	router.HandleFunc("/api/auth/logout", controllers.Logout).Methods("GET")
 	router.HandleFunc("/api/auth/password", controllers.UpdatePassword).Methods("UPDATE")
-
 	log.Infoln("load api routers success")
 	// // static files
 	// router.Handle("/", http.FileServer(http.Dir("../frontend/")))

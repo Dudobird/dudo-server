@@ -4,14 +4,14 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/jinzhu/gorm"
 	"github.com/Dudobird/dudo-server/models"
+	"github.com/jinzhu/gorm"
 
-	log "github.com/sirupsen/logrus"
-
-	"github.com/gorilla/mux"
 	"github.com/Dudobird/dudo-server/config"
 	"github.com/Dudobird/dudo-server/routers"
+	"github.com/gorilla/mux"
+	"github.com/rs/cors"
+	log "github.com/sirupsen/logrus"
 )
 
 // App is the manager of this application
@@ -36,7 +36,7 @@ func NewApp(file string) *App {
 func (app *App) Run() {
 	hostAndPort := app.Config.Application.ListenAt
 	log.Println("server start listen at:", hostAndPort)
-	err := http.ListenAndServe(hostAndPort, app.Router)
+	err := http.ListenAndServe(hostAndPort, cors.Default().Handler(app.Router))
 	if err != nil {
 		log.Fatal(err)
 	}
