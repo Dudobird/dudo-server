@@ -10,7 +10,7 @@ import (
 	"github.com/Dudobird/dudo-server/utils"
 )
 
-// GetTopLevelFiles list all entry files
+// GetTopLevelFiles list all top level files when user login success
 func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.TokenContextKey).(uint)
 	user := models.GetUser(userID)
@@ -20,14 +20,15 @@ func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storages := []models.Storage{}
-	err := models.GetDB().Model(&user).Where("level = 0").Related(&storages).Error
-
+	swu := models.StoragesWithUser{
+		Owner: user,
+	}
+	err := swu.GetTopFiles()
 	if err != nil {
 		log.Errorln(err)
 		utils.JSONRespnseWithTextMessage(w, http.StatusServiceUnavailable, "request service not avaliable now")
 		return
 	}
-	utils.JSONMessageWithData(w, 200, "", storages)
+	utils.JSONMessageWithData(w, 200, "", swu.Storages)
 	return
 }

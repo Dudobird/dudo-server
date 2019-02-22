@@ -26,7 +26,7 @@ type Token struct {
 // User include user authenticate information
 type User struct {
 	gorm.Model
-	Email    string    `json:"email"`
+	Email    string    `json:"email",sql:"unique_index"`
 	Password string    `json:"password"`
 	Token    string    `json:"token" sql:"-"`
 	Storages []Storage `json:"-"`
@@ -199,7 +199,18 @@ func UpdatePassword(userID uint, password, newPassword string) *utils.Message {
 // GetUser return user infomation based userid
 func GetUser(userID uint) *User {
 	account := &User{}
-	err := GetDB().Table("accounts").Where("id = ?", userID).First(account).Error
+	err := GetDB().Table("users").Where("id = ?", userID).First(account).Error
+	if err != nil {
+		return nil
+	}
+	account.Password = ""
+	return account
+}
+
+// GetUserWithEmail return user infomation based user email
+func GetUserWithEmail(email string) *User {
+	account := &User{}
+	err := GetDB().Table("users").Where("email = ?", email).First(account).Error
 	if err != nil {
 		return nil
 	}

@@ -7,6 +7,7 @@ import (
 
 func TestMain(m *testing.M) {
 	app := GetTestApp()
+	CleanTables(app)
 	CreateTables(app)
 	code := m.Run()
 	CleanTables(app)

@@ -5,9 +5,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/jinzhu/gorm"
-	// mysql driver
 	"github.com/Dudobird/dudo-server/config"
+	"github.com/jinzhu/gorm"
+
+	// mysql driver init
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 

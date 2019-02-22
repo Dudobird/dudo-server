@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -90,7 +89,6 @@ func TestCreateUser(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 		app.Router.ServeHTTP(rr, req)
-		log.Println(string(user.post))
 		utils.Equals(t, user.statuscode, rr.Code)
 		if user.statuscode == http.StatusCreated {
 			message := UserResponse{}
