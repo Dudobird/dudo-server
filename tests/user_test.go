@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,14 +15,14 @@ import (
 	"github.com/Dudobird/dudo-server/utils"
 )
 
-// var testUser models.Account
+// var testUser models.User
 
-var testUser = &models.Account{
+var testUser = &models.User{
 	Email:    "test@example.com",
 	Password: "123456",
 }
 
-type AccountResponse struct {
+type UserResponse struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
 	Data    struct {
@@ -31,13 +32,13 @@ type AccountResponse struct {
 	}
 }
 
-func signUpTestUser(app *core.App) (*AccountResponse, error) {
+func signUpTestUser(app *core.App) (*UserResponse, error) {
 	user := testUser.ToJSONBytes()
 	req, _ := http.NewRequest("POST", "/api/auth/signup", bytes.NewBuffer(user))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 	app.Router.ServeHTTP(rr, req)
-	message := AccountResponse{}
+	message := UserResponse{}
 	if http.StatusCreated == rr.Code {
 		if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
 			return nil, err
@@ -48,9 +49,9 @@ func signUpTestUser(app *core.App) (*AccountResponse, error) {
 }
 
 func deleteTestUser(app *core.App) {
-	app.DB.Unscoped().Delete(&models.Account{Email: "test@example.com"})
+	app.DB.Unscoped().Delete(&models.User{Email: "test@example.com"})
 }
-func TestCreateAccount(t *testing.T) {
+func TestCreateUser(t *testing.T) {
 	app := GetTestApp()
 	var users = []struct {
 		post       []byte
@@ -80,7 +81,6 @@ func TestCreateAccount(t *testing.T) {
 			post:       []byte(`{"password":"123456"}`),
 			statuscode: http.StatusBadRequest,
 		}, {
-			// return status bad request becouse same email is already in use
 			post:       []byte(`{"email":"test@example.com","password":"2342253"}`),
 			statuscode: http.StatusBadRequest,
 		},
@@ -90,9 +90,10 @@ func TestCreateAccount(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 		app.Router.ServeHTTP(rr, req)
+		log.Println(string(user.post))
 		utils.Equals(t, user.statuscode, rr.Code)
 		if user.statuscode == http.StatusCreated {
-			message := AccountResponse{}
+			message := UserResponse{}
 			if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
 				utils.OK(t, err)
 			}
@@ -105,7 +106,7 @@ func TestCreateAccount(t *testing.T) {
 	deleteTestUser(app)
 }
 
-func TestLoginAccount(t *testing.T) {
+func TestLoginUser(t *testing.T) {
 	app := GetTestApp()
 	_, err := signUpTestUser(app)
 	utils.Equals(t, err, nil)
@@ -149,7 +150,7 @@ func TestLoginAccount(t *testing.T) {
 		app.Router.ServeHTTP(rr, req)
 		utils.Equals(t, u.statuscode, rr.Code)
 		if u.statuscode == http.StatusOK {
-			message := AccountResponse{}
+			message := UserResponse{}
 			if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
 				utils.OK(t, err)
 			}

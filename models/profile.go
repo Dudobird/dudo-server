@@ -4,20 +4,25 @@ import (
 	"net/http"
 
 	"github.com/Dudobird/dudo-server/utils"
+	"github.com/jinzhu/gorm"
 )
 
 // Profile for user information
 type Profile struct {
+	gorm.Model
+	UserID       uint `json:"user_id"`
+	User         User
 	Name         string `json:"name"`
 	Phone        string `json:"phone"`
-	UserID       uint   `json:"user_id"`
+	MobilePhone  string `json:"mobil_phone"`
+	Department   string `json:"department"`
 	ProfileImage string `json:"profile_image"`
 }
 
 // GetUserProfile return user profile struct
-func GetUserProfile(uid uint) *Profile {
+func GetUserProfile(accountID uint) *Profile {
 	profile := &Profile{}
-	err := GetDB().Table("profiles").Where("user_id = ?", uid).First(profile).Error
+	err := GetDB().Table("profiles").Where("user_id = ?", accountID).First(profile).Error
 	if err != nil {
 		return nil
 	}

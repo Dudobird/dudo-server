@@ -7,8 +7,8 @@ import (
 
 	"github.com/jinzhu/gorm"
 	// mysql driver
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/Dudobird/dudo-server/config"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
 var db *gorm.DB
@@ -30,13 +30,16 @@ func InitConnection() (*gorm.DB, error) {
 		dbPort,
 		dbName,
 	)
+	log.Infof("try to connect database : %s:%s", dbHost, dbPort)
 	db, err = gorm.Open("mysql", dbURI)
 	if err != nil {
 		log.Errorln(err)
 		return nil, err
 	}
 	log.Infoln("connect database success")
-	db.AutoMigrate(&Account{})
+	log.Infoln("start database auto migrate...")
+	db.AutoMigrate(&User{}, &Profile{}, &Storage{})
+	log.Infoln("database auto migrate success")
 	return db, nil
 }
 

@@ -9,27 +9,27 @@ import (
 func TestValidate(t *testing.T) {
 	type testsuit struct {
 		expect bool
-		input  *Account
+		input  *User
 	}
 	tests := []testsuit{
 		testsuit{
-			input:  &Account{},
+			input:  &User{},
 			expect: false,
 		},
 		testsuit{
-			input:  &Account{Email: "not valid email", Password: "exist"},
+			input:  &User{Email: "not valid email", Password: "exist"},
 			expect: false,
 		},
 		testsuit{
-			input:  &Account{Email: "not valid email", Password: "exist"},
+			input:  &User{Email: "not valid email", Password: "exist"},
 			expect: false,
 		},
 		testsuit{
-			input:  &Account{Email: "", Password: "exist"},
+			input:  &User{Email: "", Password: "exist"},
 			expect: false,
 		},
 		testsuit{
-			input:  &Account{Email: "test@example.com", Password: "exist"},
+			input:  &User{Email: "test@example.com", Password: "exist"},
 			expect: true,
 		},
 	}

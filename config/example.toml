@@ -6,6 +6,13 @@ dbname = "dudo"
 password = "dudoadmin"             
 username = "dudouser"
 
+
+[Storage]
+server = "localhost"
+port = "9000"
+access_key = "minio"
+secret_key = "minio123"
+
 [Application]
 # Default server listen host and port
 listenAt = "127.0.0.1:8080"

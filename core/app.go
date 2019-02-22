@@ -9,17 +9,20 @@ import (
 
 	"github.com/Dudobird/dudo-server/config"
 	"github.com/Dudobird/dudo-server/routers"
+	"github.com/Dudobird/dudo-server/storage"
 	"github.com/gorilla/mux"
+	"github.com/minio/minio-go"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 )
 
 // App is the manager of this application
 type App struct {
-	configfile string
-	Config     *config.Config
-	Router     *mux.Router
-	DB         *gorm.DB
+	configfile     string
+	Config         *config.Config
+	Router         *mux.Router
+	DB             *gorm.DB
+	StorageHandler *minio.Client
 }
 
 // NewApp create a new App struct from config file
@@ -64,5 +67,10 @@ func (app *App) init(configFile string) (err error) {
 		return
 	}
 	app.DB = db
+	handler, err := storage.InitConnection()
+	if err != nil {
+		return
+	}
+	app.StorageHandler = handler
 	return
 }

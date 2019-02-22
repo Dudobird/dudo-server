@@ -1,0 +1,29 @@
+version: '2'
+
+services:
+ minio:
+  image: minio/minio:RELEASE.2019-02-20T22-44-29Z
+  volumes:
+   - minio-data:/data
+  ports:
+   - "9000:9000"
+  environment:
+   MINIO_ACCESS_KEY: minio
+   MINIO_SECRET_KEY: minio123
+  command: server /data
+ mysql:
+  image: mysql:5.7
+  volumes:
+   - mysql-data:/var/lib/mysql
+  ports:
+   - "3306:3306"
+  environment:
+   MYSQL_ROOT_PASSWORD: root
+   MYSQL_DATABASE: dudo
+   MYSQL_USER: dudouser
+   MYSQL_PASSWORD: dudoadmin
+  command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+
+volumes:
+  mysql-data:
+  minio-data:

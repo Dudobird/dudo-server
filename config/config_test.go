@@ -19,6 +19,12 @@ var expectConfig = &Config{
 		Password: "dudoadmin",
 		Username: "dudouser",
 	},
+	Storage: storage{
+		Server:    "localhost",
+		Port:      "9000",
+		AccessKey: "minio",
+		SecretKey: "minio123",
+	},
 }
 
 func TestLoadConfig(t *testing.T) {

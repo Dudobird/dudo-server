@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"log"
+
 	"github.com/Dudobird/dudo-server/core"
 	"github.com/Dudobird/dudo-server/models"
 )
@@ -16,16 +18,18 @@ func GetTestApp() *core.App {
 }
 
 var appModels = []interface{}{
-	&models.Account{},
+	&models.User{},
 	&models.Profile{},
 }
 
 // CreateTables create table automatic
 func CreateTables(app *core.App) {
+	log.Println("create tables for test")
 	app.DB.AutoMigrate(appModels...)
 }
 
 // CleanTables will drop all models tables
 func CleanTables(app *core.App) {
+	log.Println("clean all tables")
 	app.DB.DropTable(appModels...)
 }

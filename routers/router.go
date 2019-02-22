@@ -24,10 +24,14 @@ func LoadRouters() (router *mux.Router, err error) {
 	}()
 	router = mux.NewRouter()
 	router.Use(auth.JWTAuthentication)
-	router.HandleFunc("/api/auth/signup", controllers.CreateAccount).Methods("POST")
+	router.HandleFunc("/api/auth/signup", controllers.CreateUser).Methods("POST")
 	router.HandleFunc("/api/auth/signin", controllers.Login).Methods("POST")
 	router.HandleFunc("/api/auth/logout", controllers.Logout).Methods("GET")
 	router.HandleFunc("/api/auth/password", controllers.UpdatePassword).Methods("UPDATE")
+
+	router.HandleFunc("/api/storages", controllers.GetTopLevelFiles).Methods("GET")
+	// router.HandleFunc("/api/storages", controllers.GetFiles).Methods("POST")
+
 	log.Infoln("load api routers success")
 	// // static files
 	// router.Handle("/", http.FileServer(http.Dir("../frontend/")))

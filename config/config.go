@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Database    database    `toml:"Database"`
 	Application application `toml:"Application"`
+	Storage     storage     `toml:"Storage"`
 }
 
 type database struct {
@@ -18,6 +19,13 @@ type database struct {
 	DBName   string `toml:"dbname"`
 	Username string `toml:"username"`
 	Password string `toml:"password"`
+}
+
+type storage struct {
+	Server    string `toml:"server"`
+	Port      string `toml:"port"`
+	AccessKey string `toml:"access_key"`
+	SecretKey string `toml:"secret_key"`
 }
 
 type application struct {

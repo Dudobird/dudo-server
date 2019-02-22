@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/Dudobird/dudo-server/config"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/Dudobird/dudo-server/utils"
 
@@ -23,24 +23,25 @@ type Token struct {
 	jwt.StandardClaims
 }
 
-// Account include user authenticate information
-type Account struct {
+// User include user authenticate information
+type User struct {
 	gorm.Model
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Token    string `json:"token" sql:"-"`
+	Email    string    `json:"email"`
+	Password string    `json:"password"`
+	Token    string    `json:"token" sql:"-"`
+	Storages []Storage `json:"-"`
 }
 
 // ToJSONBytes will format the accout information to json []byte
-func (account *Account) ToJSONBytes() []byte {
+func (account *User) ToJSONBytes() []byte {
 	return []byte(fmt.Sprintf(`{"email":"%s","password":"%s"}`, account.Email, account.Password))
 }
 
 // CheckIfEmailExist return true if email already exist in database
 // return error != nil when sever query fail
-func (account *Account) CheckIfEmailExist() (bool, error) {
-	temp := &Account{}
-	err := GetDB().Table("accounts").Where("email=?", account.Email).First(temp).Error
+func (account *User) CheckIfEmailExist() (bool, error) {
+	temp := &User{}
+	err := GetDB().Table("users").Where("email=?", account.Email).First(temp).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		log.Errorln(err)
 		return false, errors.New("server unavailable")
@@ -63,13 +64,13 @@ func accountValidate(validate *validator.Validate, field string, value string) e
 }
 
 // Validate will check if the user registe info is correct
-func (account *Account) Validate() (bool, string) {
+func (account *User) Validate() (bool, string) {
 	validate := validator.New()
 	err := accountValidate(validate, "email", account.Email)
 	if err != nil {
 		return false, "email address is require"
 	}
-	err = accountValidate(validate, "password", account.Email)
+	err = accountValidate(validate, "password", account.Password)
 	if err != nil {
 		return false, "password is required"
 	}
@@ -77,7 +78,7 @@ func (account *Account) Validate() (bool, string) {
 	return true, "validate success"
 }
 
-func (account *Account) createToken() (string, error) {
+func (account *User) createToken() (string, error) {
 	tokenSecret := config.GetConfig().Application.Token
 	token := jwt.NewWithClaims(
 		jwt.GetSigningMethod("HS256"),
@@ -93,7 +94,7 @@ func (account *Account) createToken() (string, error) {
 }
 
 // Create will valid user infomation and create it
-func (account *Account) Create() *utils.Message {
+func (account *User) Create() *utils.Message {
 	if status, message := account.Validate(); status != true {
 		return utils.NewMessage(http.StatusBadRequest, message)
 	}
@@ -123,9 +124,9 @@ func (account *Account) Create() *utils.Message {
 // if success, it will save the token and return success message
 // or return forbidden etc message
 func Login(email, password string) *utils.Message {
-	account := &Account{}
+	account := &User{}
 	tokenSecret := config.GetConfig().Application.Token
-	tempAccout := &Account{
+	tempAccout := &User{
 		Email:    email,
 		Password: password,
 	}
@@ -133,7 +134,7 @@ func Login(email, password string) *utils.Message {
 	if status, message := tempAccout.Validate(); status != true {
 		return utils.NewMessage(http.StatusBadRequest, message)
 	}
-	err := GetDB().Table("accounts").Where("email = ?", email).First(account).Error
+	err := GetDB().Table("users").Where("email = ?", email).First(account).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return utils.NewMessage(http.StatusNotFound, "email not found")
@@ -160,8 +161,8 @@ func Login(email, password string) *utils.Message {
 
 // Logout user will delete the user token from database
 func Logout(userID uint) *utils.Message {
-	account := &Account{}
-	GetDB().Table("accounts").Where("id = ?", userID).First(account)
+	account := &User{}
+	GetDB().Table("users").Where("id = ?", userID).First(account)
 	if account.Email == "" {
 		return utils.NewMessage(http.StatusNotFound, "user not found")
 	}
@@ -176,8 +177,8 @@ func UpdatePassword(userID uint, password, newPassword string) *utils.Message {
 		return utils.NewMessage(http.StatusBadRequest, "new password format error")
 	}
 
-	account := &Account{}
-	err := GetDB().Table("accounts").Where("id = ?", userID).First(account).Error
+	account := &User{}
+	err := GetDB().Table("users").Where("id = ?", userID).First(account).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return utils.NewMessage(http.StatusNotFound, "user not found")
@@ -196,8 +197,8 @@ func UpdatePassword(userID uint, password, newPassword string) *utils.Message {
 }
 
 // GetUser return user infomation based userid
-func GetUser(userID uint) *Account {
-	account := &Account{}
+func GetUser(userID uint) *User {
+	account := &User{}
 	err := GetDB().Table("accounts").Where("id = ?", userID).First(account).Error
 	if err != nil {
 		return nil

@@ -11,3 +11,10 @@ username = "dudouser"
 listenAt = "127.0.0.1:8080"
 # For generate jwt token 
 token = "thisisonlyfortest" 
+
+
+[Storage]
+server = "localhost"
+port = "9000"
+access_key = "minio"
+secret_key = "minio123"

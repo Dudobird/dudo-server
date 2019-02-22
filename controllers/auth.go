@@ -10,9 +10,9 @@ import (
 	"github.com/Dudobird/dudo-server/utils"
 )
 
-// CreateAccount will create a new user based received json object
-func CreateAccount(w http.ResponseWriter, r *http.Request) {
-	account := &models.Account{}
+// CreateUser will create a new user based received json object
+func CreateUser(w http.ResponseWriter, r *http.Request) {
+	account := &models.User{}
 	err := json.NewDecoder(r.Body).Decode(account)
 	if err != nil {
 		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "request data invalid")
@@ -26,7 +26,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 // if user authentication information is correct, send back 200
 // else send 403 forbidden
 func Login(w http.ResponseWriter, r *http.Request) {
-	account := &models.Account{}
+	account := &models.User{}
 	err := json.NewDecoder(r.Body).Decode(account)
 	if err != nil {
 		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "request data invalid")

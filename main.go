@@ -4,8 +4,8 @@ import (
 	"flag"
 	"os"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/Dudobird/dudo-server/core"
+	log "github.com/sirupsen/logrus"
 )
 
 var configFile string
