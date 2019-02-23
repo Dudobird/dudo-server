@@ -20,7 +20,7 @@ func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	swu := models.StoragesWithUser{
+	swu := models.StorageFilesWithUser{
 		Owner: user,
 	}
 	err := swu.GetTopFiles()
@@ -29,6 +29,6 @@ func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithTextMessage(w, http.StatusServiceUnavailable, "request service not avaliable now")
 		return
 	}
-	utils.JSONMessageWithData(w, 200, "", swu.Storages)
+	utils.JSONMessageWithData(w, 200, "", swu.Files)
 	return
 }

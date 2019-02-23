@@ -12,7 +12,7 @@ type Profile struct {
 	gorm.Model
 	UserID       uint `json:"user_id"`
 	User         User
-	Name         string `json:"name"`
+	Name         string `json:"name" `
 	Phone        string `json:"phone"`
 	MobilePhone  string `json:"mobil_phone"`
 	Department   string `json:"department"`

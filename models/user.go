@@ -26,10 +26,10 @@ type Token struct {
 // User include user authenticate information
 type User struct {
 	gorm.Model
-	Email    string    `json:"email",sql:"unique_index"`
-	Password string    `json:"password"`
-	Token    string    `json:"token" sql:"-"`
-	Storages []Storage `json:"-"`
+	Email    string        `json:"email" gorm:"not null;type:varchar(100);unique_index"`
+	Password string        `json:"password" gorm:"not null"`
+	Token    string        `json:"token" sql:"-"`
+	Files    []StorageFile `json:"-"`
 }
 
 // ToJSONBytes will format the accout information to json []byte

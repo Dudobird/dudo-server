@@ -1,52 +1,65 @@
 package models
 
 import (
-	"log"
+	"time"
 
 	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 )
 
-// Storage for store user files
-type Storage struct {
-	gorm.Model
-	UserID uint
-	// filetype like exe jpeg
-	RawStorageInfo
+// StorageFile for store user files
+type StorageFile struct {
+	ID        string `json:"id" gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
+	RawStorageFileInfo
+	UserID   uint           `json:"user_id"`
+	SubFiles []*StorageFile `gorm:"many2many:subfiles;association_jointable_foreignkey:subfile_id"`
 }
 
-//RawStorageInfo after upload success ,each file will generate one raw info
-type RawStorageInfo struct {
+// BeforeCreate save the uuid as file id
+func (file *StorageFile) BeforeCreate(scope *gorm.Scope) error {
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		log.Errorf("created uuid error: %v\n", err)
+	}
+	return scope.SetColumn("Id", uuid.String())
+}
+
+//RawStorageFileInfo after upload success ,each file will generate one raw info
+type RawStorageFileInfo struct {
 	FileExtention string `json:"file_extention"`
-	FileName      string `json:"file_name"`
-	FileLevel     uint   `json:"level"`
-	Bucket        string `json:"bucket"`
-	Path          string `json:"path"`
-	IsDir         bool   `json:"isdir"`
+	FileName      string `json:"file_name" gorm:"not null;index:idx_file_name"`
+	Bucket        string `json:"bucket" gorm:"not null;index:idx_file_bucket"`
+	Path          string `json:"path" gorm:"not null"`
+	IsDir         bool   `json:"isdir" gorm:"not null"`
+	IsTopLevel    bool   `json:"is_top_level" gorm:"not null"`
 }
 
-// StoragesWithUser for controller
-type StoragesWithUser struct {
-	Owner    *User
-	Storages []*Storage
+// StorageFilesWithUser for controller
+type StorageFilesWithUser struct {
+	Owner *User
+	Files []*StorageFile
 }
 
 // Save files from raw info
-func (swu *StoragesWithUser) Save(files []RawStorageInfo) error {
+func (swu *StorageFilesWithUser) Save(files []RawStorageFileInfo) error {
 	for _, file := range files {
-		swu.Storages = append(swu.Storages, &Storage{RawStorageInfo: file, UserID: swu.Owner.ID})
+		swu.Files = append(swu.Files, &StorageFile{RawStorageFileInfo: file})
 	}
-	err := GetDB().Model(swu.Owner).Association("Storages").Append(swu.Storages).Error
+	err := GetDB().Model(swu.Owner).Association("Files").Append(swu.Files).Error
 	return err
 }
 
 // GetTopFiles get user first level of files
-func (swu *StoragesWithUser) GetTopFiles() error {
-	storages := []*Storage{}
-	err := GetDB().Model(swu.Owner).Where("file_level = ?", 0).Related(&storages).Error
+func (swu *StorageFilesWithUser) GetTopFiles() error {
+	files := []*StorageFile{}
+	err := GetDB().Model(swu.Owner).Where("is_top_level = ?", true).Related(&files).Error
 	if err != nil {
 		return err
 	}
-	log.Printf("Len of storage = %d", len(storages))
-	swu.Storages = storages
+	swu.Files = files
 	return nil
 }

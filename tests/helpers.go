@@ -20,6 +20,7 @@ func GetTestApp() *core.App {
 var appModels = []interface{}{
 	&models.User{},
 	&models.Profile{},
+	&models.StorageFile{},
 }
 
 // CreateTables create table automatic
