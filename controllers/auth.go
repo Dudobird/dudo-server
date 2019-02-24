@@ -15,7 +15,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	account := &models.User{}
 	err := json.NewDecoder(r.Body).Decode(account)
 	if err != nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "request data invalid")
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	message := account.Create()
@@ -29,7 +29,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	account := &models.User{}
 	err := json.NewDecoder(r.Body).Decode(account)
 	if err != nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "request data invalid")
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	message := models.Login(account.Email, account.Password)
@@ -61,7 +61,7 @@ func UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	tempAccout := &receivePasswordInfo{}
 	err := json.NewDecoder(r.Body).Decode(tempAccout)
 	if err != nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "request data invalid")
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	message := models.UpdatePassword(userID, tempAccout.Password, tempAccout.NewPassword)

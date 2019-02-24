@@ -1,8 +1,6 @@
 package models
 
 import (
-	"net/http"
-
 	"github.com/Dudobird/dudo-server/utils"
 	"github.com/jinzhu/gorm"
 )
@@ -20,35 +18,40 @@ type Profile struct {
 }
 
 // GetUserProfile return user profile struct
-func GetUserProfile(accountID uint) *Profile {
+func GetUserProfile(accountID uint) (*Profile, *utils.CustomError) {
 	profile := &Profile{}
 	err := GetDB().Table("profiles").Where("user_id = ?", accountID).First(profile).Error
 	if err != nil {
-		return nil
+		if err == gorm.ErrRecordNotFound {
+			return nil, &utils.ErrResourceNotFound
+		}
+		return nil, &utils.ErrInternalServerError
 	}
-	return profile
+	return profile, nil
 }
 
 // Validate will check the field of Profile and
 // return true if everything is fine
-func (profile *Profile) Validate() (int, string) {
+func (profile *Profile) Validate() *utils.CustomError {
 	if profile.UserID <= 0 {
-		return http.StatusNotFound, "user id not found"
+
+		return &utils.ErrUserNotFound
 	}
 	if profile.Name != "" && (len(profile.Name) <= 3 || len(profile.Name) >= 20) {
-		return http.StatusBadRequest, "name lenth must greate than 3 and less than 20"
+		return &utils.ErrProfileNameValidateFail
 	}
 	// More validate need
-	return http.StatusOK, ""
+	return nil
 }
 
 // Create save all profile data and send 201 message back to user
-func (profile *Profile) Create() *utils.Message {
-	if status, message := profile.Validate(); status != http.StatusOK {
-		return utils.NewMessage(status, message)
+func (profile *Profile) Create() *utils.CustomError {
+	if errWithCode := profile.Validate(); errWithCode != nil {
+		return errWithCode
 	}
-	GetDB().Create(profile)
-	message := utils.NewMessage(http.StatusCreated, "profile create success")
-	message.Data = ""
-	return message
+	err := GetDB().Create(profile).Error
+	if err != nil {
+		return &utils.ErrInternalServerError
+	}
+	return &utils.NoCreateErr
 }

@@ -9,27 +9,25 @@ import (
 	"github.com/Dudobird/dudo-server/auth"
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/utils"
-	"github.com/jinzhu/gorm"
-	log "github.com/sirupsen/logrus"
 )
 
 // CreateFiles create a folder or file
 func CreateFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.TokenContextKey).(uint)
-	user := models.GetUser(userID)
-	if user == nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusNotFound, "user not found")
+	_, errWithCode := models.GetUser(userID)
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
 	file := &models.StorageFile{}
 	err := json.NewDecoder(r.Body).Decode(file)
 	if err != nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "request data invalid")
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	errWithCode := file.CreateFile(userID)
+	errWithCode = file.CreateFile(userID)
 	if errWithCode != nil {
-		utils.JSONRespnseWithTextMessage(w, errWithCode.Code(), errWithCode.Error())
+		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
 	utils.JSONRespnseWithTextMessage(w, http.StatusCreated, "")
@@ -39,10 +37,9 @@ func CreateFiles(w http.ResponseWriter, r *http.Request) {
 // GetTopLevelFiles list all top level files when user login success
 func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.TokenContextKey).(uint)
-	user := models.GetUser(userID)
-
-	if user == nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusNotFound, "user not found")
+	user, errWithCode := models.GetUser(userID)
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
 
@@ -50,13 +47,12 @@ func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
 		Owner: user,
 	}
 
-	err := swu.GetTopFiles()
-	if err != nil {
-		log.Errorln(err)
-		utils.JSONRespnseWithTextMessage(w, http.StatusServiceUnavailable, "request service not avaliable now")
+	data, errWithCode := swu.GetTopFiles()
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
-	utils.JSONMessageWithData(w, 200, "", swu.Files)
+	utils.JSONMessageWithData(w, 200, "", data)
 	return
 }
 
@@ -65,26 +61,21 @@ func GetCurrentFile(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	if utils.ValidateUUID(id) == false {
-		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "id not given")
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	userID := r.Context().Value(auth.TokenContextKey).(uint)
-	user := models.GetUser(userID)
-	if user == nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusNotFound, "user not found")
+	user, errWithCode := models.GetUser(userID)
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
 	swu := models.StorageFilesWithUser{
 		Owner: user,
 	}
-	data, err := swu.ListCurrentFile(id)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			utils.JSONRespnseWithTextMessage(w, http.StatusNotFound, "request object not found")
-			return
-		}
-		log.Errorln(err)
-		utils.JSONRespnseWithTextMessage(w, http.StatusServiceUnavailable, "request service not avaliable now")
+	data, errWithCode := swu.ListCurrentFile(id)
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
 	utils.JSONMessageWithData(w, 200, "", data)
@@ -96,26 +87,21 @@ func ListSubFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	if utils.ValidateUUID(id) == false {
-		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "id not given")
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	userID := r.Context().Value(auth.TokenContextKey).(uint)
-	user := models.GetUser(userID)
-	if user == nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusNotFound, "user not found")
+	user, errWithCode := models.GetUser(userID)
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
 	swu := models.StorageFilesWithUser{
 		Owner: user,
 	}
-	data, err := swu.ListChildren(id)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			utils.JSONRespnseWithTextMessage(w, http.StatusNotFound, "request object not found")
-			return
-		}
-		log.Errorln(err)
-		utils.JSONRespnseWithTextMessage(w, http.StatusServiceUnavailable, "request service not avaliable now")
+	data, errWithCode := swu.ListChildren(id)
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
 	utils.JSONMessageWithData(w, 200, "", data)
@@ -127,27 +113,22 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	if utils.ValidateUUID(id) == false {
-		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "id not given")
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 
 	userID := r.Context().Value(auth.TokenContextKey).(uint)
-	user := models.GetUser(userID)
-	if user == nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusNotFound, "user not found")
+	user, errWithCode := models.GetUser(userID)
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	swu := models.StorageFilesWithUser{
 		Owner: user,
 	}
-	err := swu.DeleteFileFromID(id)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			utils.JSONRespnseWithTextMessage(w, http.StatusNotFound, "request object not found")
-			return
-		}
-		log.Errorln(err)
-		utils.JSONRespnseWithTextMessage(w, http.StatusServiceUnavailable, "request service not avaliable now")
+	errWithCode = swu.DeleteFileFromID(id)
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	utils.JSONMessageWithData(w, 200, "", nil)

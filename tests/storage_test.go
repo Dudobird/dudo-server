@@ -106,7 +106,7 @@ func setUpUser(app *core.App) string {
 }
 
 func setUpFiles() {
-	user := models.GetUserWithEmail(testUser.Email)
+	user, _ := models.GetUserWithEmail(testUser.Email)
 	if user == nil {
 		log.Panicln("Error can't find test users")
 	}

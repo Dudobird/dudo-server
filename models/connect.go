@@ -38,7 +38,7 @@ func InitConnection() (*gorm.DB, error) {
 		return nil, err
 	}
 	log.Infoln("connect database success")
-	log.Infoln("start database auto migrate...")
+	log.Infoln("start database automigrate...")
 	db.AutoMigrate(&User{}, &Profile{}, &StorageFile{})
 	log.Infoln("database auto migrate success")
 	return db, nil

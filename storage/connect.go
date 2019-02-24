@@ -2,7 +2,7 @@ package storage
 
 import (
 	"github.com/Dudobird/dudo-server/config"
-	"github.com/minio/minio-go"
+	minio "github.com/minio/minio-go"
 	log "github.com/sirupsen/logrus"
 )
 

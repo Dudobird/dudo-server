@@ -29,6 +29,11 @@ func JSONMessageWithData(w http.ResponseWriter, status int, text string, data in
 	JSONResonseWithMessage(w, message)
 }
 
+// JSONRespnseWithErr response with custom error
+func JSONRespnseWithErr(w http.ResponseWriter, err *CustomError) {
+	JSONRespnseWithTextMessage(w, err.Code(), err.Error())
+}
+
 // JSONRespnseWithTextMessage will send back with status and a simple text message
 func JSONRespnseWithTextMessage(w http.ResponseWriter, status int, text string) {
 	message := NewMessage(status, text)

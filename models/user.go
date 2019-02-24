@@ -197,23 +197,29 @@ func UpdatePassword(userID uint, password, newPassword string) *utils.Message {
 }
 
 // GetUser return user infomation based userid
-func GetUser(userID uint) *User {
+func GetUser(userID uint) (*User, *utils.CustomError) {
 	account := &User{}
 	err := GetDB().Table("users").Where("id = ?", userID).First(account).Error
 	if err != nil {
-		return nil
+		if err == gorm.ErrRecordNotFound {
+			return nil, &utils.ErrUserNotFound
+		}
+		return nil, &utils.ErrInternalServerError
 	}
 	account.Password = ""
-	return account
+	return account, nil
 }
 
 // GetUserWithEmail return user infomation based user email
-func GetUserWithEmail(email string) *User {
+func GetUserWithEmail(email string) (*User, *utils.CustomError) {
 	account := &User{}
 	err := GetDB().Table("users").Where("email = ?", email).First(account).Error
 	if err != nil {
-		return nil
+		if err == gorm.ErrRecordNotFound {
+			return nil, &utils.ErrUserNotFound
+		}
+		return nil, &utils.ErrInternalServerError
 	}
 	account.Password = ""
-	return account
+	return account, nil
 }

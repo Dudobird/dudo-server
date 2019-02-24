@@ -19,11 +19,11 @@ func CreateProfile(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(profile)
 	if err != nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "request data invalid")
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	profile.UserID = user
-	utils.JSONResonseWithMessage(w, profile.Create())
+	utils.JSONRespnseWithErr(w, profile.Create())
 	return
 }
 
@@ -32,9 +32,14 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
-		utils.JSONRespnseWithTextMessage(w, http.StatusBadRequest, "request id invalid")
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	data := models.GetUserProfile(uint(id))
+	data, errWithCode := models.GetUserProfile(uint(id))
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, errWithCode)
+		return
+	}
 	utils.JSONMessageWithData(w, http.StatusOK, "", data)
+	return
 }

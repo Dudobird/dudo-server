@@ -27,8 +27,13 @@ var (
 	ErrUseCredentialsNotCorrect = CustomError{error: errors.New("email or password not correct"), status: 401}
 	ErrEmailAlreadyInUse        = CustomError{error: errors.New("email address is already in use"), status: 403}
 
+	ErrUserNotFound = CustomError{error: errors.New("user not found"), status: 404}
+
 	// resources
 	ErrResourceNotFound = CustomError{error: errors.New("resource not found"), status: 404}
 	// sevice
 	ErrInternalServerError = CustomError{error: errors.New("internal server error"), status: 500}
+
+	// validation
+	ErrProfileNameValidateFail = CustomError{error: errors.New("name lenth must greate than 3 and less than 20"), status: 400}
 )
