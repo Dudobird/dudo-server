@@ -48,10 +48,11 @@ func signUpTestUser(app *core.App) (*UserResponse, error) {
 }
 
 func deleteTestUser(app *core.App) {
-	app.DB.Unscoped().Delete(&models.User{Email: "test@example.com"})
+	app.DB.Unscoped().Where("id >= 0").Delete(&models.User{})
 }
 func TestCreateUser(t *testing.T) {
 	app := GetTestApp()
+	deleteTestUser(app)
 	var users = []struct {
 		post       []byte
 		statuscode int
