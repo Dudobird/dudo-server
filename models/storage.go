@@ -8,7 +8,6 @@ import (
 	"github.com/Dudobird/dudo-server/utils"
 
 	uuid "github.com/satori/go.uuid"
-	log "github.com/sirupsen/logrus"
 )
 
 // StorageFile for store user files
@@ -25,29 +24,33 @@ type RawStorageFileInfo struct {
 	ID         string `json:"id" gorm:"primary_key"`
 	FileName   string `json:"file_name" gorm:"not null;index:idx_file_name"`
 	Bucket     string `json:"bucket"`
-	ParentID   string `json:"parent_id" gorm:"not null"`
+	ParentID   string `json:"parent_id" gorm:"not null;default:''"`
 	IsDir      bool   `json:"is_dir" gorm:"not null"`
-	IsTopLevel bool   `json:"is_top_level" gorm:"not null"`
 	// remote minio storage path
 	Path string `json:"path" gorm:"not null"`
 }
 
 func (sf *StorageFile) validation() *utils.CustomError {
-	if sf.IsTopLevel && sf.ParentID != "" {
+	parent := &StorageFile{}
+	// file name validation
+	if sf.FileName == "" || len(sf.FileName) > 50 {
 		return &utils.ErrPostDataNotCorrect
 	}
-	// check parent id exist or not
-	parent := &StorageFile{}
-	err := GetDB().Model(&StorageFile{}).Where("parent_id = ?", sf.ParentID).First(parent).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return &utils.ErrResourceNotFound
+	// if parentid not exist, it will create in root position 
+	// or validate if parentid exist or not
+	if sf.ParentID != ""{
+		// create top level 
+		// check parent id exist or not
+		err := GetDB().Model(&StorageFile{}).Where("parent_id = ?", sf.ParentID).First(parent).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return &utils.ErrResourceNotFound
+			}
+			return &utils.ErrInternalServerError
 		}
-		return &utils.ErrInternalServerError
 	}
-
-	// check if resource already exist in same folder
-	err = GetDB().Where("file_name = ? AND parent_id = ?", sf.FileName, sf.ParentID).First(parent).Error
+	// check if resource already exist in same folder with same filename
+	err := GetDB().Where("file_name = ? AND parent_id = ?", sf.FileName, sf.ParentID).First(parent).Error
 	if err == nil {
 		return &utils.ErrResourceAlreadyExist
 	}
@@ -70,13 +73,9 @@ func (sf *StorageFile) CreateFile(uid uint) *utils.CustomError {
 		// 	return err
 		// }
 	}
-	id, err := uuid.NewV4()
-	if err != nil {
-		log.Errorf("create uuid with error: %s", err)
-		return &utils.ErrInternalServerError
-	}
+	id := uuid.NewV4()
 	sf.ID = id.String()
-	err = GetDB().Model(&StorageFile{}).Create(sf).Error
+	err := GetDB().Model(&StorageFile{}).Create(sf).Error
 	if err != nil {
 		return &utils.ErrInternalServerError
 	}
@@ -138,7 +137,7 @@ func (swu *StorageFilesWithUser) SaveFromRawFiles(files []RawStorageFileInfo) er
 // GetTopFiles get user first level of files
 func (swu *StorageFilesWithUser) GetTopFiles() ([]StorageFile, *utils.CustomError) {
 	files := []StorageFile{}
-	err := GetDB().Model(&StorageFile{}).Where("is_top_level = ? and user_id = ?", true, swu.Owner.ID).Find(&files).Error
+	err := GetDB().Model(&StorageFile{}).Where("parent_id = ? and user_id = ?","", swu.Owner.ID).Find(&files).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, &utils.ErrResourceNotFound

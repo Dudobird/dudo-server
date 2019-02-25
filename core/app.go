@@ -39,7 +39,11 @@ func NewApp(file string) *App {
 func (app *App) Run() {
 	hostAndPort := app.Config.Application.ListenAt
 	log.Println("server start listen at:", hostAndPort)
-	err := http.ListenAndServe(hostAndPort, cors.Default().Handler(app.Router))
+	c := cors.New(cors.Options{
+		AllowCredentials: true,
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+	})
+	err := http.ListenAndServe(hostAndPort, c.Handler(app.Router))
 	if err != nil {
 		log.Fatal(err)
 	}

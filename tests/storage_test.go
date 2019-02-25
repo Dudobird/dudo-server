@@ -30,7 +30,6 @@ var rawFiles = []models.RawStorageFileInfo{
 		Bucket:     "test",
 		ParentID:   "",
 		IsDir:      false,
-		IsTopLevel: true,
 	},
 	{
 		ID:         "bfc5dd70-f4e5-4aed-aad9-a9da313c8076",
@@ -38,7 +37,6 @@ var rawFiles = []models.RawStorageFileInfo{
 		Bucket:     "",
 		ParentID:   "",
 		IsDir:      true,
-		IsTopLevel: true,
 	},
 	{
 		ID:         "faeea8e1-3d9f-40c5-8097-121903d57339",
@@ -46,14 +44,12 @@ var rawFiles = []models.RawStorageFileInfo{
 		Bucket:     "",
 		ParentID:   "",
 		IsDir:      true,
-		IsTopLevel: true,
 	}, {
 		ID:         "f2a5a7b9-e94c-4d0d-b48d-2597f41b199f",
 		FileName:   "pine.jpg",
 		Bucket:     "test",
 		ParentID:   "faeea8e1-3d9f-40c5-8097-121903d57339",
 		IsDir:      false,
-		IsTopLevel: false,
 	},
 	{
 		ID:         "6195f2f6-e12d-4bb7-a125-793a939caf6e",
@@ -61,14 +57,12 @@ var rawFiles = []models.RawStorageFileInfo{
 		Bucket:     "test",
 		ParentID:   "bfc5dd70-f4e5-4aed-aad9-a9da313c8076",
 		IsDir:      false,
-		IsTopLevel: false,
 	}, {
 		ID:         "6ab7058e-5d90-453b-bfc8-96f936ddd815",
 		FileName:   "dog.jpg",
 		Bucket:     "test",
 		ParentID:   "bfc5dd70-f4e5-4aed-aad9-a9da313c8076",
 		IsDir:      false,
-		IsTopLevel: false,
 	},
 }
 
@@ -80,7 +74,6 @@ type StoragesResponse struct {
 		FileName   string `json:"file_name"`
 		Bucket     string `json:"bucket"`
 		Path       string `json:"path"`
-		IsTopLevel bool   `json:"is_top_level"`
 		IsDir      bool   `json:"is_dir"`
 		ParentID   string `json:"parent_id"`
 	}
@@ -94,7 +87,6 @@ type SingleStoragesResponse struct {
 		FileName   string `json:"file_name"`
 		Bucket     string `json:"bucket"`
 		Path       string `json:"path"`
-		IsTopLevel bool   `json:"is_top_level"`
 		IsDir      bool   `json:"is_dir"`
 		ParentID   string `json:"parent_id"`
 	}
@@ -171,7 +163,6 @@ func TestGetTopFiles(t *testing.T) {
 		utils.OK(t, err)
 	}
 	for _, data := range message.Data {
-		utils.Equals(t, data.IsTopLevel, true)
 		utils.Equals(t, data.ParentID, "")
 	}
 	utils.Equals(t, 3, len(message.Data))
@@ -383,29 +374,23 @@ func TestCreateFolders(t *testing.T) {
 	}{
 		{
 			// put a new folder under animals
-			fileInfo:   []byte(`{"is_dir":true,"is_top_level":false,"file_name":"wildanimals","parent_id":"bfc5dd70-f4e5-4aed-aad9-a9da313c8076"}`),
+			fileInfo:   []byte(`{"is_dir":true,"file_name":"wildanimals","parent_id":"bfc5dd70-f4e5-4aed-aad9-a9da313c8076"}`),
 			statuscode: 201,
 			token:      testtoken,
 		},
 		{
 			// create a new folder in root
-			fileInfo:   []byte(`{"is_dir":true,"is_top_level":true,"file_name":"people"}`),
+			fileInfo:   []byte(`{"is_dir":true,"file_name":"people"}`),
 			statuscode: 201,
 			token:      testtoken,
 		},
 
 		{
-			// top folder with parent_id not allow
-			fileInfo:   []byte(`{"is_dir":true,"is_top_level":true,"file_name":"test_animals","parent_id":"bfc5dd70-f4e5-4aed-aad9-a9da313c8076"}`),
+			// folder name empty will reject
+			fileInfo:   []byte(`{"is_dir":true,"file_name":"","parent_id":"bfc5dd70-f4e5-4aed-aad9-a9da313c8076"}`),
 			statuscode: 400,
 			token:      testtoken,
 		},
-		// {
-		// 	// put a new folder under animals must not exist (random result? maybe need some way to flush or sync)
-		// 	fileInfo:   []byte(`{"is_dir":true,"is_top_level":false,"file_name":"wildanimals","parent_id":"bfc5dd70-f4e5-4aed-aad9-a9da313c8076"}`),
-		// 	statuscode: 400,
-		// 	token:      testtoken,
-		// },
 	}
 
 	for _, test := range testCase {

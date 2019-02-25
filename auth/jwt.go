@@ -7,9 +7,9 @@ import (
 
 	"github.com/Dudobird/dudo-server/config"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/utils"
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
 var (
