@@ -19,7 +19,7 @@ func CreateFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
-	file := &models.StorageFile{}
+	file := &models.StorageFile{UserID: userID}
 	err := json.NewDecoder(r.Body).Decode(file)
 	if err != nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
