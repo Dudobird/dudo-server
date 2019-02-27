@@ -9,7 +9,7 @@ import (
 var handler *minio.Client
 
 // InitConnection create init connection
-func InitConnection() (*minio.Client, error) {
+func InitConnection() (Storage, error) {
 	var err error
 	c := config.GetConfig()
 	server := c.Storage.Server
@@ -24,11 +24,6 @@ func InitConnection() (*minio.Client, error) {
 		return nil, err
 	}
 	log.Infoln("connect object storage success")
-	handler = storageConnect
-	return storageConnect, nil
-}
-
-// GetStorageHandler will return a inited storage connector
-func GetStorageHandler() *minio.Client {
-	return handler
+	minioManager := NewMinioManager(storageConnect)
+	return minioManager, nil
 }

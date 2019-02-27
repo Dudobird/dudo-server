@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Dudobird/dudo-server/core"
+	"github.com/Dudobird/dudo-server/routers"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,5 +20,10 @@ func init() {
 func main() {
 	flag.Parse()
 	app := core.NewApp(configFile)
+	router, err := routers.LoadRouters()
+	if err != nil {
+		return
+	}
+	app.Router = router
 	app.Run()
 }

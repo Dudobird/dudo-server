@@ -29,8 +29,10 @@ type storage struct {
 }
 
 type application struct {
-	ListenAt string `toml:"listenAt"`
-	Token    string `toml:"token"`
+	ListenAt     string `toml:"listenAt"`
+	Token        string `toml:"token"`
+	TempFolder   string `toml:"tempfolder"`
+	BucketPrefix string `toml:"bucket_prefix"`
 }
 
 var config *Config

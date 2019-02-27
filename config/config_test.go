@@ -8,8 +8,10 @@ import (
 
 var expectConfig = &Config{
 	Application: application{
-		ListenAt: "127.0.0.1:8080",
-		Token:    "thisisonlyfortest",
+		ListenAt:     "127.0.0.1:8080",
+		Token:        "thisisonlyfortest",
+		TempFolder:   "temp",
+		BucketPrefix: "dudotest",
 	},
 	Database: database{
 		Type:     "mysql",

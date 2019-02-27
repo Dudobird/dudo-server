@@ -2,13 +2,15 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"github.com/Dudobird/dudo-server/auth"
+	"github.com/Dudobird/dudo-server/core"
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/utils"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 // CreateFiles create a folder or file
@@ -42,7 +44,6 @@ func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, errWithCode)
 		return
 	}
-
 	swu := models.StorageFilesWithUser{
 		Owner: user,
 	}
@@ -116,7 +117,11 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-
+	app := core.GetApp()
+	if app == nil {
+		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
+		return
+	}
 	userID := r.Context().Value(auth.TokenContextKey).(uint)
 	user, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
@@ -126,11 +131,25 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 	swu := models.StorageFilesWithUser{
 		Owner: user,
 	}
-	errWithCode = swu.DeleteFileFromID(id)
+	files, errWithCode := swu.DeleteFilesFromID(id)
 	if errWithCode != nil {
+		log.Error(errWithCode.Error())
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	utils.JSONMessageWithData(w, 200, "", nil)
+	messages := []string{}
+	for _, file := range files {
+		storeFileName := file.ID + "_" + file.FileName
+		err := app.StorageHandler.Delete(storeFileName, file.Bucket)
+		if err != nil {
+			log.Errorf("delete from storage error : %s", err)
+			log.Errorf("delete detail info : %s %s", file.Bucket, storeFileName)
+			messages = append(messages, fmt.Sprintf("%s:%s", file.FileName, err))
+			continue
+		}
+		messages = append(messages, fmt.Sprintf("%s:success", file.FileName))
+	}
+
+	utils.JSONMessageWithData(w, 200, "", messages)
 	return
 }

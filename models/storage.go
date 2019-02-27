@@ -1,7 +1,10 @@
 package models
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/Dudobird/dudo-server/config"
 
 	"github.com/jinzhu/gorm"
 
@@ -23,7 +26,9 @@ type StorageFile struct {
 type RawStorageFileInfo struct {
 	ID       string `json:"id" gorm:"primary_key"`
 	FileName string `json:"file_name" gorm:"not null;index:idx_file_name"`
-	Bucket   string `json:"bucket"`
+	// if you use local storage bucket will be folder name
+	Bucket string `json:"bucket"`
+	// ParentID logic parent id
 	ParentID string `json:"parent_id" gorm:"not null;default:''"`
 	IsDir    bool   `json:"is_dir" gorm:"not null"`
 	// remote minio storage path
@@ -123,7 +128,10 @@ func (swu *StorageFilesWithUser) ListChildren(parentID string) ([]StorageFile, *
 
 // SaveFromRawFiles files from raw info
 func (swu *StorageFilesWithUser) SaveFromRawFiles(files []RawStorageFileInfo) error {
+	config := config.GetConfig()
+	bucketName := fmt.Sprintf("%s-%d", config.Application.BucketPrefix, swu.Owner.ID)
 	for _, file := range files {
+		file.Bucket = bucketName
 		swu.Files = append(
 			swu.Files,
 			&StorageFile{
@@ -150,22 +158,30 @@ func (swu *StorageFilesWithUser) GetTopFiles() ([]StorageFile, *utils.CustomErro
 	return files, nil
 }
 
-// DeleteFileFromID delete file based on its id and delete all subfiles
-func (swu *StorageFilesWithUser) DeleteFileFromID(id string) *utils.CustomError {
-	file := &StorageFile{}
-	err := GetDB().Model(&StorageFile{}).Where("id=? and user_id=?", id, swu.Owner.ID).First(file).Error
+// DeleteFilesFromID delete files based on its id and delete all subfiles
+// return the files infomation to delete in storage
+func (swu *StorageFilesWithUser) DeleteFilesFromID(id string) ([]StorageFile, *utils.CustomError) {
+	pendingDeleteFiles := []StorageFile{}
+	err := GetDB().Where("id=?", id).Or("parent_id=?", id).Find(&pendingDeleteFiles).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &utils.ErrResourceNotFound
+			return pendingDeleteFiles, &utils.ErrResourceNotFound
 		}
-		return &utils.ErrInternalServerError
+		return pendingDeleteFiles, &utils.ErrInternalServerError
 	}
-	err = GetDB().Where("id=? ", id).Or("parent_id = ?", id).Delete(StorageFile{}).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return &utils.ErrResourceNotFound
+	// delete in database
+	// make sure all file belone to this user
+	for i, f := range pendingDeleteFiles {
+		if f.UserID != swu.Owner.ID {
+			continue
 		}
-		return &utils.ErrInternalServerError
+		// if it's file then send to storage manager to delete
+		// if is directory then skip only delete in database
+		if f.RawStorageFileInfo.IsDir == true {
+			pendingDeleteFiles = append(pendingDeleteFiles[:i], pendingDeleteFiles[i+1:]...)
+		}
+		// delete direct only in database
+		GetDB().Unscoped().Delete(f)
 	}
-	return nil
+	return pendingDeleteFiles, nil
 }

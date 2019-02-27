@@ -3,15 +3,15 @@ package core
 import (
 	"errors"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/jinzhu/gorm"
 
 	"github.com/Dudobird/dudo-server/config"
-	"github.com/Dudobird/dudo-server/routers"
 	"github.com/Dudobird/dudo-server/storage"
 	"github.com/gorilla/mux"
-	"github.com/minio/minio-go"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,17 +22,26 @@ type App struct {
 	Config         *config.Config
 	Router         *mux.Router
 	DB             *gorm.DB
-	StorageHandler *minio.Client
+	StorageHandler storage.Storage
+	FullTempFolder string
+}
+
+var globalApp *App
+
+// GetApp return global app
+func GetApp() *App {
+	return globalApp
 }
 
 // NewApp create a new App struct from config file
 func NewApp(file string) *App {
-	app := &App{}
-	err := app.init(file)
+	newApp := &App{}
+	err := newApp.init(file)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return app
+	globalApp = newApp
+	return newApp
 }
 
 // Run will start the serve
@@ -61,11 +70,6 @@ func (app *App) init(configFile string) (err error) {
 	}
 	app.Config = config
 
-	router, err := routers.LoadRouters()
-	if err != nil {
-		return
-	}
-	app.Router = router
 	db, err := models.InitConnection()
 	if err != nil {
 		return
@@ -75,6 +79,18 @@ func (app *App) init(configFile string) (err error) {
 	if err != nil {
 		return
 	}
+	// Create temp file for file upload
+	tempFolderName := config.Application.TempFolder
+	fullTempPath, _ := filepath.Abs("." + string(filepath.Separator) + tempFolderName)
+	if _, err = os.Stat(fullTempPath); os.IsNotExist(err) {
+		err = os.MkdirAll(fullTempPath, 0755)
+		if err != nil {
+			return
+		}
+		log.Infof("create temp file in location: %s", fullTempPath)
+	}
+	app.FullTempFolder = fullTempPath
 	app.StorageHandler = handler
+
 	return
 }

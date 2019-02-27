@@ -27,40 +27,34 @@ var rawFiles = []models.RawStorageFileInfo{
 	{
 		ID:       "4a447b2f-6947-478e-8207-20fd1f82d082",
 		FileName: "test.zip",
-		Bucket:   "test",
 		ParentID: "",
 		IsDir:    false,
 	},
 	{
 		ID:       "bfc5dd70-f4e5-4aed-aad9-a9da313c8076",
 		FileName: "animals",
-		Bucket:   "",
 		ParentID: "",
 		IsDir:    true,
 	},
 	{
 		ID:       "faeea8e1-3d9f-40c5-8097-121903d57339",
 		FileName: "trees",
-		Bucket:   "",
 		ParentID: "",
 		IsDir:    true,
 	}, {
 		ID:       "f2a5a7b9-e94c-4d0d-b48d-2597f41b199f",
 		FileName: "pine.jpg",
-		Bucket:   "test",
 		ParentID: "faeea8e1-3d9f-40c5-8097-121903d57339",
 		IsDir:    false,
 	},
 	{
 		ID:       "6195f2f6-e12d-4bb7-a125-793a939caf6e",
 		FileName: "cat.jpg",
-		Bucket:   "test",
 		ParentID: "bfc5dd70-f4e5-4aed-aad9-a9da313c8076",
 		IsDir:    false,
 	}, {
 		ID:       "6ab7058e-5d90-453b-bfc8-96f936ddd815",
 		FileName: "dog.jpg",
-		Bucket:   "test",
 		ParentID: "bfc5dd70-f4e5-4aed-aad9-a9da313c8076",
 		IsDir:    false,
 	},
@@ -77,6 +71,12 @@ type StoragesResponse struct {
 		IsDir    bool   `json:"is_dir"`
 		ParentID string `json:"parent_id"`
 	}
+}
+
+type StoragesDeleteResponse struct {
+	Status  int      `json:"status"`
+	Message string   `json:"message"`
+	Data    []string `json:"data"`
 }
 
 type SingleStoragesResponse struct {
@@ -116,6 +116,65 @@ func tearDownUser(app *core.App) {
 func tearDownStorages() {
 	models.GetDB().Unscoped().Model(&models.StorageFile{}).Delete(&models.StorageFile{})
 }
+
+// code from : https://gist.github.com/mattetti/5914158/f4d1393d83ebedc682a3c8e7bdc6b49670083b84
+// func TestPostFormDataToCreateFiles(t *testing.T) {
+// 	app := GetTestApp()
+// 	testtoken := setUpUser(app)
+
+// }
+
+func TestCreateFolders(t *testing.T) {
+	app := GetTestApp()
+	testtoken := setUpUser(app)
+	setUpFiles()
+	testCase := []struct {
+		fileInfo   []byte
+		statuscode int
+		token      string
+	}{
+		{
+			// put a new folder under animals
+			fileInfo:   []byte(`{"is_dir":true,"file_name":"wildanimals","parent_id":"bfc5dd70-f4e5-4aed-aad9-a9da313c8076"}`),
+			statuscode: 201,
+			token:      testtoken,
+		},
+		{
+			// create a new folder in root
+			fileInfo:   []byte(`{"is_dir":true,"file_name":"people"}`),
+			statuscode: 201,
+			token:      testtoken,
+		},
+
+		{
+			// folder name empty will reject
+			fileInfo:   []byte(`{"is_dir":true,"file_name":"","parent_id":"bfc5dd70-f4e5-4aed-aad9-a9da313c8076"}`),
+			statuscode: 400,
+			token:      testtoken,
+		},
+	}
+
+	for _, test := range testCase {
+		req, _ := http.NewRequest("POST", "/api/storages", bytes.NewBuffer(test.fileInfo))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+test.token)
+		rr := httptest.NewRecorder()
+		app.Router.ServeHTTP(rr, req)
+		utils.Equals(t, test.statuscode, rr.Code)
+		if rr.Code == 201 {
+			type result struct {
+				Result int
+			}
+			var r result
+			// the user id must equal folder user id
+			models.GetDB().Raw("select count(*) as result from (select id from (select id from users union all select user_id from storage_files) tb1 group by id) tb2;").Scan(&r)
+			utils.Equals(t, r.Result, 1)
+		}
+	}
+	tearDownUser(app)
+	tearDownStorages()
+}
+
 func TestEmptyFiles(t *testing.T) {
 	app := GetTestApp()
 	testtoken := setUpUser(app)
@@ -125,7 +184,6 @@ func TestEmptyFiles(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.Router.ServeHTTP(rr, req)
 	utils.Equals(t, 200, rr.Code)
-
 	message := StoragesResponse{}
 	if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
 		utils.OK(t, err)
@@ -320,7 +378,7 @@ func TestDeleteFilesWithID(t *testing.T) {
 		app.Router.ServeHTTP(rr, req)
 		utils.Equals(t, test.statuscode, rr.Code)
 		if rr.Code == 200 {
-			message := StoragesResponse{}
+			message := StoragesDeleteResponse{}
 			if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
 				utils.OK(t, err)
 			}
@@ -358,57 +416,6 @@ func TestDeleteFilesWithID(t *testing.T) {
 		rr := httptest.NewRecorder()
 		app.Router.ServeHTTP(rr, req)
 		utils.Equals(t, test.statuscode, rr.Code)
-	}
-	tearDownUser(app)
-	tearDownStorages()
-}
-
-func TestCreateFolders(t *testing.T) {
-	app := GetTestApp()
-	testtoken := setUpUser(app)
-	setUpFiles()
-	testCase := []struct {
-		fileInfo   []byte
-		statuscode int
-		token      string
-	}{
-		{
-			// put a new folder under animals
-			fileInfo:   []byte(`{"is_dir":true,"file_name":"wildanimals","parent_id":"bfc5dd70-f4e5-4aed-aad9-a9da313c8076"}`),
-			statuscode: 201,
-			token:      testtoken,
-		},
-		{
-			// create a new folder in root
-			fileInfo:   []byte(`{"is_dir":true,"file_name":"people"}`),
-			statuscode: 201,
-			token:      testtoken,
-		},
-
-		{
-			// folder name empty will reject
-			fileInfo:   []byte(`{"is_dir":true,"file_name":"","parent_id":"bfc5dd70-f4e5-4aed-aad9-a9da313c8076"}`),
-			statuscode: 400,
-			token:      testtoken,
-		},
-	}
-
-	for _, test := range testCase {
-		req, _ := http.NewRequest("POST", "/api/storages", bytes.NewBuffer(test.fileInfo))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+test.token)
-		rr := httptest.NewRecorder()
-		app.Router.ServeHTTP(rr, req)
-		utils.Equals(t, test.statuscode, rr.Code)
-		if rr.Code == 201 {
-			type result struct {
-				Result int
-			}
-			var r result
-			// the user id must equal folder user id
-			models.GetDB().Raw("select count(*) as result from (select id from (select id from users union all select user_id from storage_files) tb1 group by id) tb2;").Scan(&r)
-			utils.Equals(t, r.Result, 1)
-		}
 	}
 	tearDownUser(app)
 	tearDownStorages()

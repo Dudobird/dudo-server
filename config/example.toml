@@ -18,3 +18,7 @@ secret_key = "minio123"
 listenAt = "127.0.0.1:8080"
 # For generate jwt token 
 token = "thisisonlyfortest" 
+# temp folder for store upload file 
+tempfolder = "temp"
+# bucket prefix
+bucket_prefix= "dudotest"

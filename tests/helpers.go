@@ -5,6 +5,7 @@ import (
 
 	"github.com/Dudobird/dudo-server/core"
 	"github.com/Dudobird/dudo-server/models"
+	"github.com/Dudobird/dudo-server/routers"
 )
 
 var app *core.App
@@ -13,6 +14,11 @@ var app *core.App
 func GetTestApp() *core.App {
 	if app == nil {
 		app = core.NewApp("./config_test.toml")
+		router, err := routers.LoadRouters()
+		if err != nil {
+			panic(err)
+		}
+		app.Router = router
 	}
 	return app
 }
