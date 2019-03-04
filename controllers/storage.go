@@ -13,8 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CreateFiles create a folder or file
-func CreateFiles(w http.ResponseWriter, r *http.Request) {
+// CreateFolder create a folder from post data
+func CreateFolder(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.TokenContextKey).(uint)
 	_, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
@@ -27,7 +27,7 @@ func CreateFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	errWithCode = file.CreateFile(userID)
+	errWithCode = file.CreateFolder(userID)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, errWithCode)
 		return

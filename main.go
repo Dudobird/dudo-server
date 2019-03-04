@@ -12,8 +12,9 @@ import (
 var configFile string
 
 func init() {
-	log.SetOutput(os.Stdout)
+	log.SetReportCaller(true)
 	log.SetLevel(log.InfoLevel)
+	log.SetOutput(os.Stdout)
 	flag.StringVar(&configFile, "c", "config.toml", "config file path")
 }
 

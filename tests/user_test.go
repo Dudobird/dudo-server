@@ -21,6 +21,9 @@ var testUser = &models.User{
 	Password: "123456",
 }
 
+// get created user id
+var UserID uint
+
 type UserResponse struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
@@ -28,6 +31,7 @@ type UserResponse struct {
 		Email    string `json:"email"`
 		Token    string `json:"token"`
 		Password string `json:"password"`
+		ID       uint   `json:"id"`
 	}
 }
 
@@ -42,6 +46,7 @@ func signUpTestUser(app *core.App) (*UserResponse, error) {
 		if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
 			return nil, err
 		}
+		UserID = message.Data.ID
 		return &message, nil
 	}
 	return nil, fmt.Errorf("sign up user fail with code %d", rr.Code)

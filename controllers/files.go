@@ -27,6 +27,7 @@ import (
 func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.TokenContextKey).(uint)
 	vars := mux.Vars(r)
+
 	parentID := vars["parentID"]
 	if parentID == "root" {
 		parentID = ""
@@ -45,8 +46,8 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(64 << 20)
 	file, handler, err := r.FormFile("uploadfile")
 	if err != nil {
-		log.Errorf("Upload file fail : %s", err)
-		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
+		log.Errorf("Upload file fail : %s ", err)
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	defer file.Close()
@@ -59,7 +60,6 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	)
 	fileName := fmt.Sprintf("%s_%s", id, handler.Filename)
 	tempFileName := app.FullTempFolder + string(filepath.Separator) + fileName
-	fmt.Fprintf(w, "%v", handler.Header)
 	f, err := os.OpenFile(tempFileName, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		log.Errorf("save temp file fail : %s", err)
@@ -86,8 +86,9 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 			Path:     path,
 		},
 	}
-	app.DB.Create(&s)
+	app.DB.Save(&s)
 	os.Remove(tempFileName)
+	utils.JSONMessageWithData(w, 201, "", id.String())
 	return
 }
 
@@ -114,6 +115,11 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Errorf("query storage info err: %s", err)
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
+		return
+	}
+	// Right now only allow for download file
+	if fileMeta.IsDir == true {
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	tempDownloadFilePath := app.FullTempFolder + string(filepath.Separator) + fileMeta.FileName

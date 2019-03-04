@@ -13,4 +13,7 @@ type Storage interface {
 
 	// Delete file from storage
 	Delete(fileName, bucket string) error
+
+	// CleanBucket remove all files from a bucket
+	CleanBucket(bucket string) []error
 }

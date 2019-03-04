@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/Dudobird/dudo-server/config"
-
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/utils"
 	jwt "github.com/dgrijalva/jwt-go"

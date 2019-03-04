@@ -68,18 +68,15 @@ func (sf *StorageFile) validation() *utils.CustomError {
 	return nil
 }
 
-// CreateFile will save a new file from post data
+// CreateFolder will create a new folder from post data
 // if file type is folder just create in database
-func (sf *StorageFile) CreateFile(uid uint) *utils.CustomError {
+func (sf *StorageFile) CreateFolder(uid uint) *utils.CustomError {
 	// valid user post data
 	if err := sf.validation(); err != nil {
 		return err
 	}
 	if sf.IsDir == false {
-		// err := sf.createNewFile()
-		// if err != nil {
-		// 	return err
-		// }
+		return &utils.ErrPostDataNotCorrect
 	}
 	id := uuid.NewV4()
 	sf.ID = id.String()
@@ -87,10 +84,6 @@ func (sf *StorageFile) CreateFile(uid uint) *utils.CustomError {
 	if err != nil {
 		return &utils.ErrInternalServerError
 	}
-	return nil
-}
-
-func (sf *StorageFile) createNewFile() error {
 	return nil
 }
 
