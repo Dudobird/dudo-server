@@ -50,6 +50,7 @@ func (app *App) Run() {
 	log.Println("server start listen at:", hostAndPort)
 	c := cors.New(cors.Options{
 		AllowCredentials: true,
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "PUT"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 	})
 	err := http.ListenAndServe(hostAndPort, c.Handler(app.Router))

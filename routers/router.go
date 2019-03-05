@@ -51,8 +51,8 @@ func LoadRouters() (router *mux.Router, err error) {
 	router.HandleFunc("/api/storage/{id}", controllers.DeleteFiles).Methods("DELETE")
 	router.HandleFunc("/api/storage/{id}/subfiles", controllers.ListSubFiles).Methods("GET")
 
-	router.HandleFunc("/api/upload/{parentID}", controllers.UploadFiles).Methods("POST")
-	router.HandleFunc("/api/download/{id}", controllers.DownloadFiles).Methods("GET")
+	router.HandleFunc("/api/upload/storage/{parentID}", controllers.UploadFiles).Methods("POST")
+	router.HandleFunc("/api/download/storage/{id}", controllers.DownloadFiles).Methods("GET")
 
 	log.Infoln("load api routers success")
 	// // static files
