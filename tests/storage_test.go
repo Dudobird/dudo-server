@@ -118,30 +118,30 @@ func setUpRealFiles(token string) (map[string]models.StorageFile, map[string]mod
 		statusCode   int
 	}{
 		{
-			url:          "/api/upload/" + folders["files"].ID,
+			url:          "/api/upload/storage/" + folders["files"].ID,
 			formDataName: "uploadfile",
-			filePath:     "./temp/1.file",
+			filePath:     "./files/1.file",
 			token:        token,
 			statusCode:   201,
 		},
 		{
-			url:          "/api/upload/" + folders["backup"].ID,
+			url:          "/api/upload/storage/" + folders["backup"].ID,
 			formDataName: "uploadfile",
-			filePath:     "./temp/1.file",
+			filePath:     "./files/1.file",
 			token:        token,
 			statusCode:   201,
 		},
 		{
-			url:          "/api/upload/" + folders["files"].ID,
+			url:          "/api/upload/storage/" + folders["files"].ID,
 			formDataName: "uploadfile",
-			filePath:     "./temp/2.file",
+			filePath:     "./files/2.file",
 			token:        token,
 			statusCode:   201,
 		},
 		{
-			url:          "/api/upload/" + folders["files"].ID,
+			url:          "/api/upload/storage/" + folders["files"].ID,
 			formDataName: "uploadfile",
-			filePath:     "./temp/3.file",
+			filePath:     "./files/3.file",
 			token:        token,
 			statusCode:   201,
 		},
@@ -221,7 +221,7 @@ func fileUploadRequest(url, paramName, path, token string) (*httptest.ResponseRe
 	req = req.WithContext(ctx)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/upload/{parentID}", controllers.UploadFiles)
+	router.HandleFunc("/api/upload/storage/{parentID}", controllers.UploadFiles)
 	router.ServeHTTP(rr, req)
 	return rr, nil
 }
@@ -240,23 +240,23 @@ func TestPostFormDataToCreateFiles(t *testing.T) {
 		statusCode   int
 	}{
 		{
-			url:          "/api/upload/notexist",
+			url:          "/api/upload/storage/notexist",
 			formDataName: "uploadfile",
-			filePath:     "./temp/1.file",
+			filePath:     "./files/1.file",
 			token:        token,
 			statusCode:   400,
 		},
 		{
-			url:          "/api/upload/root",
+			url:          "/api/upload/storage/root",
 			formDataName: "notcorrect",
-			filePath:     "./temp/1.file",
+			filePath:     "./files/1.file",
 			token:        token,
 			statusCode:   400,
 		},
 		{
-			url:          "/api/upload/root",
+			url:          "/api/upload/storage/root",
 			formDataName: "uploadfile",
-			filePath:     "./temp/1.file",
+			filePath:     "./files/1.file",
 			token:        token,
 			statusCode:   201,
 		},
@@ -651,7 +651,7 @@ func TestDownloadFilesWithID(t *testing.T) {
 			statusCode: 200,
 			token:      token,
 			savePath:   "tmp-1.file",
-			content:    "test file = 1",
+			content:    "this is 1.file",
 		},
 		{
 			fileName:   "2.file",
@@ -659,14 +659,14 @@ func TestDownloadFilesWithID(t *testing.T) {
 			statusCode: 200,
 			token:      token,
 			savePath:   "tmp-2.file",
-			content:    "test file = 2",
+			content:    "this is 2.file",
 		},
 		{
 			fileName:   "2.file",
 			id:         files["2.file"].ID,
 			statusCode: 401,
 			token:      "notexisttoken",
-			savePath:   "tmp-2.file",
+			savePath:   "this is 2.file",
 		},
 		{
 			fileName:   "files",
@@ -682,7 +682,7 @@ func TestDownloadFilesWithID(t *testing.T) {
 			log.Printf("create temp file fail:%s", err)
 			t.FailNow()
 		}
-		req, _ := http.NewRequest("GET", "/api/download/"+tc.id, nil)
+		req, _ := http.NewRequest("GET", "/api/download/storage/"+tc.id, nil)
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+tc.token)
 		rr := httptest.NewRecorder()
