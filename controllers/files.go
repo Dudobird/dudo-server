@@ -41,6 +41,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	app := core.GetApp()
 	if app == nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
@@ -56,6 +57,12 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
+	existCheckStorage := &models.StorageFile{}
+	notFoundChecker := models.GetDB().Where(&models.StorageFile{RawStorageFileInfo: models.RawStorageFileInfo{ParentID: parentID, FileName: handler.Filename}}).First(&existCheckStorage).RecordNotFound()
+	if notFoundChecker == false {
+		utils.JSONRespnseWithErr(w, &utils.ErrResourceAlreadyExist)
+		return
+	}
 	// the tempfile will be userid_timestamp_realfilename
 	id := utils.GenRandomID("file", 15)
 	// bucket name has some restric

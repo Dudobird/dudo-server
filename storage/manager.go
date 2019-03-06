@@ -114,3 +114,12 @@ func (m *MinioManager) CleanBucket(bucketName string) []error {
 	}
 	return errs
 }
+
+// RemoveBucket  delete a bucket and  all files in one bucket if force = true
+// from minio
+func (m *MinioManager) RemoveBucket(bucketName string, force bool) error {
+	if force == true {
+		m.CleanBucket(bucketName)
+	}
+	return m.Handler.RemoveBucket(bucketName)
+}

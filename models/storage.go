@@ -121,6 +121,9 @@ func (swu *StorageFilesWithUser) ListCurrentFile(id string) (*StorageFile, *util
 
 // ListChildren list the file and all subfiles
 func (swu *StorageFilesWithUser) ListChildren(parentID string) ([]StorageFile, *utils.CustomError) {
+	if parentID == "root" {
+		parentID = ""
+	}
 	files := []StorageFile{}
 	err := GetDB().Model(&StorageFile{}).Where("parent_id=? and user_id=?", parentID, swu.Owner.ID).Find(&files).Error
 	if err != nil {
@@ -154,15 +157,7 @@ func (swu *StorageFilesWithUser) SaveFromRawFiles(files []RawStorageFileInfo) er
 
 // GetTopFiles get user first level of files
 func (swu *StorageFilesWithUser) GetTopFiles() ([]StorageFile, *utils.CustomError) {
-	files := []StorageFile{}
-	err := GetDB().Model(&StorageFile{}).Where("parent_id = ? and user_id = ?", "", swu.Owner.ID).Find(&files).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, &utils.ErrResourceNotFound
-		}
-		return nil, &utils.ErrInternalServerError
-	}
-	return files, nil
+	return swu.ListChildren("")
 }
 
 // DeleteFilesFromID delete files based on its id and delete all subfiles

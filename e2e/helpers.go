@@ -60,7 +60,7 @@ func tearDownStorages() {
 	models.GetDB().Unscoped().Model(&models.StorageFile{}).Delete(&models.StorageFile{})
 	userID := strings.ToLower(strings.TrimLeft(UserID, "user_"))
 	bucketName := fmt.Sprintf("dudotest-%s", userID)
-	GetTestApp().Storage.CleanBucket(bucketName)
+	GetTestApp().Storage.RemoveBucket(bucketName, true)
 	log.Println("remove files data for database and storage success")
 }
 

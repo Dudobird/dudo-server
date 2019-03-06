@@ -16,4 +16,7 @@ type Storage interface {
 
 	// CleanBucket remove all files from a bucket
 	CleanBucket(bucket string) []error
+
+	// Remove a bucker if force == true ,remove it even some file in this bucket
+	RemoveBucket(bucket string, force bool) error
 }

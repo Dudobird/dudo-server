@@ -41,7 +41,7 @@ func InitDBConnection() (*gorm.DB, error) {
 	log.Infoln("start database automigrate...")
 	db.AutoMigrate(&User{}, &Profile{}, &StorageFile{})
 	log.Infoln("database auto migrate success")
-	return db, nil
+	return db, db.DB().Ping()
 }
 
 // GetDB will return a local db variable which init before
