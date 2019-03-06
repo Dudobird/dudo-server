@@ -3,61 +3,18 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Dudobird/dudo-server/models"
-
-	"github.com/Dudobird/dudo-server/core"
 	"github.com/Dudobird/dudo-server/utils"
 )
 
-// var testUser models.User
-
-var testUser = &models.User{
-	Email:    "test@example.com",
-	Password: "123456",
-}
-
-// get created user id
-var UserID uint
-
-type UserResponse struct {
-	Status  int    `json:"status"`
-	Message string `json:"message"`
-	Data    struct {
-		Email    string `json:"email"`
-		Token    string `json:"token"`
-		Password string `json:"password"`
-		ID       uint   `json:"id"`
-	}
-}
-
-func signUpTestUser(app *core.App) (*UserResponse, error) {
-	user := testUser.ToJSONBytes()
-	req, _ := http.NewRequest("POST", "/api/auth/signup", bytes.NewBuffer(user))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	app.Router.ServeHTTP(rr, req)
-	message := UserResponse{}
-	if http.StatusCreated == rr.Code {
-		if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
-			return nil, err
-		}
-		UserID = message.Data.ID
-		return &message, nil
-	}
-	return nil, fmt.Errorf("sign up user fail with code %d", rr.Code)
-}
-
-func deleteTestUser(app *core.App) {
-	app.DB.Unscoped().Where("id >= 0").Delete(&models.User{})
-}
 func TestCreateUser(t *testing.T) {
 	app := GetTestApp()
-	deleteTestUser(app)
+	defer func() {
+		tearDownUser(app)
+	}()
 	var users = []struct {
 		post       []byte
 		statuscode int
@@ -106,13 +63,14 @@ func TestCreateUser(t *testing.T) {
 			utils.Assert(t, message.Data.Token != "", "token is empty")
 		}
 	}
-
-	deleteTestUser(app)
 }
 
 func TestLoginUser(t *testing.T) {
 	app := GetTestApp()
 	_, err := signUpTestUser(app)
+	defer func() {
+		tearDownUser(app)
+	}()
 	utils.Equals(t, err, nil)
 	var users = []struct {
 		post       []byte
@@ -163,14 +121,15 @@ func TestLoginUser(t *testing.T) {
 			utils.Assert(t, message.Data.Token != "", "token is empty")
 		}
 	}
-	deleteTestUser(app)
 }
 
 func TestLogout(t *testing.T) {
 	response, err := signUpTestUser(app)
+	defer func() {
+		tearDownUser(app)
+	}()
 	utils.Equals(t, err, nil)
 	testtoken := response.Data.Token
-
 	var testCases = []struct {
 		token      string
 		statuscode int
@@ -191,7 +150,7 @@ func TestLogout(t *testing.T) {
 		app.Router.ServeHTTP(rr, req)
 		utils.Equals(t, test.statuscode, rr.Code)
 	}
-	deleteTestUser(app)
+
 }
 
 func TestUpdatePassword(t *testing.T) {
@@ -230,5 +189,5 @@ func TestUpdatePassword(t *testing.T) {
 		app.Router.ServeHTTP(rr, req)
 		utils.Equals(t, test.statuscode, rr.Code)
 	}
-	deleteTestUser(app)
+	tearDownUser(app)
 }

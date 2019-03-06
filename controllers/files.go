@@ -66,7 +66,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 		return
 	}
-	io.Copy(f, file)
+	size, _ := io.Copy(f, file)
 	f.Close()
 	path, err := app.StorageHandler.Upload(tempFileName, fileName, bucketName)
 	if err != nil {
@@ -82,6 +82,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 			FileName: handler.Filename,
 			Bucket:   bucketName,
 			IsDir:    false,
+			FileSize: size,
 			ParentID: parentID,
 			Path:     path,
 		},
@@ -139,6 +140,11 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 		return
 	}
+	defer func() {
+		f.Close()
+		os.Remove(tempDownloadFilePath)
+	}()
 	io.Copy(w, f)
+
 	return
 }

@@ -28,6 +28,8 @@ type RawStorageFileInfo struct {
 	FileName string `json:"file_name" gorm:"not null;index:idx_file_name"`
 	// if you use local storage bucket will be folder name
 	Bucket string `json:"bucket"`
+
+	FileSize int64 `json:"file_size"`
 	// ParentID logic parent id
 	ParentID string `json:"parent_id" gorm:"not null;default:''"`
 	IsDir    bool   `json:"is_dir" gorm:"not null"`

@@ -6,11 +6,12 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	defer func() {
+		cleanTables(app)
+	}()
 	app := GetTestApp()
-	CleanTables(app)
-	CreateTables(app)
+	createTables(app)
 	code := m.Run()
-	// CleanTables(app)
 	app.DB.Close()
 	os.Exit(code)
 }

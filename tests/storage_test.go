@@ -2,229 +2,18 @@ package tests
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
-	"github.com/gorilla/mux"
-
-	"github.com/Dudobird/dudo-server/controllers"
-
-	"github.com/Dudobird/dudo-server/core"
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/utils"
 )
-
-type StoragesResponse struct {
-	Status  int    `json:"status"`
-	Message string `json:"message"`
-	Data    []struct {
-		ID       string `json:"id"`
-		FileName string `json:"file_name"`
-		Bucket   string `json:"bucket"`
-		Path     string `json:"path"`
-		IsDir    bool   `json:"is_dir"`
-		ParentID string `json:"parent_id"`
-	}
-}
-
-type StoragesDeleteResponse struct {
-	Status  int      `json:"status"`
-	Message string   `json:"message"`
-	Data    []string `json:"data"`
-}
-
-type SingleStoragesResponse struct {
-	Status  int    `json:"status"`
-	Message string `json:"message"`
-	Data    struct {
-		ID       string `json:"id"`
-		FileName string `json:"file_name"`
-		Bucket   string `json:"bucket"`
-		Path     string `json:"path"`
-		IsDir    bool   `json:"is_dir"`
-		ParentID string `json:"parent_id"`
-	}
-}
-
-//                        			 All  Test Files
-//             ___________________________|_________________________
-//             |                          |                         |
-//           files                        empty                  backup
-//             |                                                    |
-//    |——————————————————————————|                                  |
-//    |            |             |                                  |
-//    1.file      2.file        3.file                            1.file
-
-func setUpRealFiles(token string) (map[string]models.StorageFile, map[string]models.StorageFile) {
-	// create folder
-	testCase := []struct {
-		fileInfo   []byte
-		statuscode int
-		token      string
-	}{
-		{
-			// put a new folder under animals
-			fileInfo:   []byte(`{"is_dir":true,"file_name":"files"}`),
-			statuscode: 201,
-			token:      token,
-		},
-		{
-			// put a new folder under animals
-			fileInfo:   []byte(`{"is_dir":true,"file_name":"empty"}`),
-			statuscode: 201,
-			token:      token,
-		},
-		{
-			// put a new folder under animals
-			fileInfo:   []byte(`{"is_dir":true,"file_name":"backup"}`),
-			statuscode: 201,
-			token:      token,
-		},
-	}
-
-	for _, test := range testCase {
-		req, _ := http.NewRequest("POST", "/api/storages", bytes.NewBuffer(test.fileInfo))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+test.token)
-		rr := httptest.NewRecorder()
-		app.Router.ServeHTTP(rr, req)
-		if rr.Code != test.statuscode {
-			log.Panicf("create folders fail: %s", rr.Body.String())
-		}
-	}
-	folders := make(map[string]models.StorageFile)
-	for _, name := range []string{"files", "empty", "backup"} {
-		s := models.StorageFile{}
-		err := models.GetDB().Model(models.StorageFile{}).Where("file_name = ?", name).First(&s).Error
-		if err != nil {
-			log.Panic(err)
-		}
-		folders[name] = s
-	}
-	realfiles := []struct {
-		url          string
-		formDataName string
-		filePath     string
-		token        string
-		statusCode   int
-	}{
-		{
-			url:          "/api/upload/storage/" + folders["files"].ID,
-			formDataName: "uploadfile",
-			filePath:     "./files/1.file",
-			token:        token,
-			statusCode:   201,
-		},
-		{
-			url:          "/api/upload/storage/" + folders["backup"].ID,
-			formDataName: "uploadfile",
-			filePath:     "./files/1.file",
-			token:        token,
-			statusCode:   201,
-		},
-		{
-			url:          "/api/upload/storage/" + folders["files"].ID,
-			formDataName: "uploadfile",
-			filePath:     "./files/2.file",
-			token:        token,
-			statusCode:   201,
-		},
-		{
-			url:          "/api/upload/storage/" + folders["files"].ID,
-			formDataName: "uploadfile",
-			filePath:     "./files/3.file",
-			token:        token,
-			statusCode:   201,
-		},
-	}
-	for _, tc := range realfiles {
-		rr, err := fileUploadRequest(tc.url, tc.formDataName, tc.filePath, tc.token)
-		if err != nil {
-			log.Panic(err)
-		}
-		if rr.Code != http.StatusCreated {
-			log.Panicf("statuscode = %d, body = %s", rr.Code, rr.Body.String())
-		}
-	}
-	files := make(map[string]models.StorageFile)
-	rawFiels := []models.StorageFile{}
-	models.GetDB().Where("is_dir = ?", false).Find(&rawFiels)
-	// only return three files in `files` folder
-	for _, file := range rawFiels {
-
-		if file.ParentID != folders["backup"].ID {
-
-			files[file.FileName] = file
-		}
-	}
-	return folders, files
-}
-
-func tearDownUser(app *core.App) {
-	deleteTestUser(app)
-}
-func tearDownStorages() {
-	models.GetDB().Unscoped().Model(&models.StorageFile{}).Delete(&models.StorageFile{})
-	bucketName := fmt.Sprintf("dudotest-%d", UserID)
-	GetTestApp().StorageHandler.CleanBucket(bucketName)
-}
-
-func fileUploadRequest(url, paramName, path, token string) (*httptest.ResponseRecorder, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	fileContents, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-	fi, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-	file.Close()
-	body := new(bytes.Buffer)
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(paramName, fi.Name())
-	if err != nil {
-		return nil, err
-	}
-	part.Write(fileContents)
-	err = writer.Close()
-	if err != nil {
-		return nil, err
-	}
-	req := httptest.NewRequest(http.MethodPost, url, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Add("Content-Type", writer.FormDataContentType())
-	rr := httptest.NewRecorder()
-	// handler := http.HandlerFunc(controllers.UploadFiles)
-	ctx := req.Context()
-	user := &models.User{}
-	err = models.GetDB().Where("email = ?", testUser.Email).First(user).Error
-	if err != nil {
-		return nil, err
-	}
-	ctx = context.WithValue(ctx, utils.ContextToken("MyAppToken"), user.ID)
-	req = req.WithContext(ctx)
-
-	router := mux.NewRouter()
-	router.HandleFunc("/api/upload/storage/{parentID}", controllers.UploadFiles)
-	router.ServeHTTP(rr, req)
-	return rr, nil
-}
 
 // e2e test with real backend and storage
 func TestPostFormDataToCreateFiles(t *testing.T) {
@@ -273,6 +62,11 @@ func TestCreateFolders(t *testing.T) {
 	userResponse, _ := signUpTestUser(app)
 	token := userResponse.Data.Token
 	setUpRealFiles(token)
+	defer func() {
+		tearDownUser(app)
+		tearDownStorages()
+	}()
+
 	testCase := []struct {
 		fileInfo   []byte
 		statuscode int
@@ -315,12 +109,14 @@ func TestCreateFolders(t *testing.T) {
 			utils.Equals(t, r.Result, 1)
 		}
 	}
-	tearDownUser(app)
-	tearDownStorages()
+
 }
 func TestEmptyFiles(t *testing.T) {
 	app := GetTestApp()
 	userResponse, _ := signUpTestUser(app)
+	defer func() {
+		tearDownUser(app)
+	}()
 	token := userResponse.Data.Token
 	req, _ := http.NewRequest("GET", "/api/storages", nil)
 	req.Header.Set("Content-Type", "application/json")
@@ -333,8 +129,6 @@ func TestEmptyFiles(t *testing.T) {
 		utils.OK(t, err)
 	}
 	utils.Equals(t, 0, len(message.Data))
-
-	tearDownUser(app)
 }
 
 func TestGetTopFiles(t *testing.T) {
@@ -342,6 +136,10 @@ func TestGetTopFiles(t *testing.T) {
 	userResponse, _ := signUpTestUser(app)
 	token := userResponse.Data.Token
 	setUpRealFiles(token)
+	defer func() {
+		tearDownUser(app)
+		tearDownStorages()
+	}()
 	// test with no authentication infomation
 	req, _ := http.NewRequest("GET", "/api/storages", nil)
 	req.Header.Set("Content-Type", "application/json")
@@ -368,8 +166,6 @@ func TestGetTopFiles(t *testing.T) {
 		utils.Equals(t, data.ParentID, "")
 	}
 	utils.Equals(t, 3, len(message.Data))
-	tearDownUser(app)
-	tearDownStorages()
 }
 
 func TestListCurrentFileWithID(t *testing.T) {
@@ -377,7 +173,10 @@ func TestListCurrentFileWithID(t *testing.T) {
 	userResponse, _ := signUpTestUser(app)
 	token := userResponse.Data.Token
 	folders, _ := setUpRealFiles(token)
-
+	defer func() {
+		tearDownUser(app)
+		tearDownStorages()
+	}()
 	testCase := []struct {
 		id         string
 		statuscode int
@@ -434,8 +233,6 @@ func TestListCurrentFileWithID(t *testing.T) {
 			utils.Equals(t, test.name, message.Data.FileName)
 		}
 	}
-	tearDownUser(app)
-	tearDownStorages()
 }
 
 func TestListChildFilesWithID(t *testing.T) {
@@ -443,7 +240,10 @@ func TestListChildFilesWithID(t *testing.T) {
 	userResponse, _ := signUpTestUser(app)
 	token := userResponse.Data.Token
 	folders, _ := setUpRealFiles(token)
-
+	defer func() {
+		tearDownUser(app)
+		tearDownStorages()
+	}()
 	testCase := []struct {
 		id         string
 		statuscode int
@@ -502,8 +302,6 @@ func TestListChildFilesWithID(t *testing.T) {
 			utils.Equals(t, test.length, len(message.Data))
 		}
 	}
-	tearDownUser(app)
-	tearDownStorages()
 }
 
 func TestDeleteFilesWithID(t *testing.T) {
@@ -511,6 +309,10 @@ func TestDeleteFilesWithID(t *testing.T) {
 	userResponse, _ := signUpTestUser(app)
 	token := userResponse.Data.Token
 	folders, files := setUpRealFiles(token)
+	defer func() {
+		tearDownUser(app)
+		tearDownStorages()
+	}()
 	var counter int
 	models.GetDB().Model(models.StorageFile{}).Count(&counter)
 	utils.Equals(t, 7, counter)
@@ -628,8 +430,6 @@ func TestDeleteFilesWithID(t *testing.T) {
 	}
 	models.GetDB().Model(models.StorageFile{}).Count(&counter)
 	utils.Equals(t, 2, counter)
-	tearDownUser(app)
-	tearDownStorages()
 }
 
 func TestDownloadFilesWithID(t *testing.T) {
@@ -637,6 +437,10 @@ func TestDownloadFilesWithID(t *testing.T) {
 	userResponse, _ := signUpTestUser(app)
 	token := userResponse.Data.Token
 	folders, files := setUpRealFiles(token)
+	defer func() {
+		tearDownUser(app)
+		tearDownStorages()
+	}()
 	testCases := []struct {
 		fileName   string
 		id         string
@@ -662,6 +466,14 @@ func TestDownloadFilesWithID(t *testing.T) {
 			content:    "this is 2.file",
 		},
 		{
+			fileName:   "3.file",
+			id:         files["3.file"].ID,
+			statusCode: 200,
+			token:      token,
+			savePath:   "tmp-3.file",
+			content:    "this is 3.file",
+		},
+		{
 			fileName:   "2.file",
 			id:         files["2.file"].ID,
 			statusCode: 401,
@@ -677,28 +489,30 @@ func TestDownloadFilesWithID(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		output, err := os.Create(tc.savePath)
-		if err != nil {
-			log.Printf("create temp file fail:%s", err)
-			t.FailNow()
-		}
 		req, _ := http.NewRequest("GET", "/api/download/storage/"+tc.id, nil)
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+tc.token)
 		rr := httptest.NewRecorder()
 		app.Router.ServeHTTP(rr, req)
 		utils.Equals(t, tc.statusCode, rr.Code)
-		_, err = io.Copy(output, rr.Body)
-		if err != nil {
-			log.Printf("transfer file fail:%s", err)
-			t.FailNow()
+		if tc.statusCode == rr.Code {
+			output, err := os.Create(tc.savePath)
+			if err != nil {
+				log.Printf("create temp file fail:%s", err)
+				t.FailNow()
+			}
+			_, err = io.Copy(output, rr.Body)
+			if err != nil {
+				log.Printf("transfer file fail:%s", err)
+				t.FailNow()
+			}
+			output.Close()
+			if tc.content != "" {
+				dat, _ := ioutil.ReadFile(tc.savePath)
+				utils.Equals(t, tc.content, string(dat))
+			}
+			os.Remove(tc.savePath)
 		}
-		output.Close()
-		if tc.content != "" {
-			dat, _ := ioutil.ReadFile(tc.savePath)
-			utils.Equals(t, tc.content, string(dat))
-		}
-		os.Remove(tc.savePath)
 	}
 
 }
