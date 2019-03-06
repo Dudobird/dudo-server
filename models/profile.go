@@ -34,11 +34,10 @@ func GetUserProfile(accountID uint) (*Profile, *utils.CustomError) {
 // return true if everything is fine
 func (profile *Profile) Validate() *utils.CustomError {
 	if profile.UserID <= 0 {
-
 		return &utils.ErrUserNotFound
 	}
 	if profile.Name != "" && (len(profile.Name) <= 3 || len(profile.Name) >= 20) {
-		return &utils.ErrProfileNameValidateFail
+		return &utils.ErrValidationForProfileName
 	}
 	// More validate need
 	return nil

@@ -61,14 +61,18 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	fileName := fmt.Sprintf("%s_%s", id, handler.Filename)
 	tempFileName := app.FullTempFolder + string(filepath.Separator) + fileName
 	f, err := os.OpenFile(tempFileName, os.O_WRONLY|os.O_CREATE, 0666)
+	defer func() {
+		f.Close()
+		os.Remove(tempFileName)
+	}()
 	if err != nil {
 		log.Errorf("save temp file fail : %s", err)
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 		return
 	}
 	size, _ := io.Copy(f, file)
-	f.Close()
-	path, err := app.StorageHandler.Upload(tempFileName, fileName, bucketName)
+	defer f.Close()
+	path, err := app.Storage.Upload(tempFileName, fileName, bucketName)
 	if err != nil {
 		log.Errorf("upload to storage fail : %s", err)
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
@@ -88,7 +92,6 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	app.DB.Save(&s)
-	os.Remove(tempFileName)
 	utils.JSONMessageWithData(w, 201, "", id.String())
 	return
 }
@@ -125,7 +128,7 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	tempDownloadFilePath := app.FullTempFolder + string(filepath.Separator) + fileMeta.FileName
 	storeFileName := fileMeta.ID + "_" + fileMeta.FileName
-	err = app.StorageHandler.Download(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
+	err = app.Storage.Download(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
 	if err != nil {
 		log.Errorf("down load file from storage err: %s", err)
 		log.Errorf("filename = %s, bucket = %s", storeFileName, fileMeta.Bucket)
@@ -145,6 +148,5 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 		os.Remove(tempDownloadFilePath)
 	}()
 	io.Copy(w, f)
-
 	return
 }

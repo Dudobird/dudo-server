@@ -6,10 +6,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var handler *minio.Client
+var storageManager *MinioManager
 
-// InitConnection create init connection
-func InitConnection() (Storage, error) {
+// InitStorageManager create storage manager
+func InitStorageManager() Storage {
 	var err error
 	c := config.GetConfig()
 	server := c.Storage.Server
@@ -20,10 +20,14 @@ func InitConnection() (Storage, error) {
 	log.Infof("try to connect object storage : %s:%s", server, port)
 	storageConnect, err := minio.New(server+":"+port, accessKey, secretKey, useSSL)
 	if err != nil {
-		log.Errorln(err)
-		return nil, err
+		log.Panicf("connect storage fail: %s", err)
 	}
 	log.Infoln("connect object storage success")
-	minioManager := NewMinioManager(storageConnect)
-	return minioManager, nil
+	storageManager = NewMinioManager(storageConnect)
+	return storageManager
+}
+
+// GetStorageManager get storage manager object
+func GetStorageManager() *MinioManager {
+	return storageManager
 }

@@ -46,18 +46,20 @@ var appModels = []interface{}{
 func createTables(app *core.App) {
 	log.Println("create tables for test")
 	app.DB.AutoMigrate(appModels...)
+	log.Println("data migrate success")
 }
 
 // cleanTables will drop all models tables
 func cleanTables(app *core.App) {
-	log.Println("clean all tables")
 	app.DB.DropTable(appModels...)
+	log.Println("clean all tables success")
 }
 
 func tearDownStorages() {
 	models.GetDB().Unscoped().Model(&models.StorageFile{}).Delete(&models.StorageFile{})
 	bucketName := fmt.Sprintf("dudotest-%d", UserID)
-	GetTestApp().StorageHandler.CleanBucket(bucketName)
+	GetTestApp().Storage.CleanBucket(bucketName)
+	log.Println("remove files data for database and storage success")
 }
 
 // var testUser models.User

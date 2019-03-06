@@ -14,8 +14,8 @@ import (
 
 var db *gorm.DB
 
-// InitConnection connect database
-func InitConnection() (*gorm.DB, error) {
+// InitDBConnection connect database
+func InitDBConnection() (*gorm.DB, error) {
 	var err error
 	config := config.GetConfig()
 	username := config.Database.Username

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -15,11 +16,23 @@ import (
 
 // StorageFile for store user files
 type StorageFile struct {
+	RawStorageFileInfo
 	CreatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
 	UpdatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
 	DeletedAt *time.Time
-	RawStorageFileInfo
-	UserID uint `json:"user_id"`
+	UserID    uint `json:"user_id"`
+}
+
+// MarshalJSON custom json response
+func (s *StorageFile) MarshalJSON() ([]byte, error) {
+	type AliasStruct StorageFile
+	return json.Marshal(&struct {
+		FileSizeReadable string `json:"file_size_readable"`
+		*AliasStruct
+	}{
+		FileSizeReadable: utils.GetReadableFileSize(float64(s.RawStorageFileInfo.FileSize)),
+		AliasStruct:      (*AliasStruct)(s),
+	})
 }
 
 //RawStorageFileInfo after upload success ,each file will generate one raw info

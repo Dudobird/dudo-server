@@ -140,7 +140,7 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 	messages := []string{}
 	for _, file := range files {
 		storeFileName := file.ID + "_" + file.FileName
-		err := app.StorageHandler.Delete(storeFileName, file.Bucket)
+		err := app.Storage.Delete(storeFileName, file.Bucket)
 		if err != nil {
 			log.Errorf("delete from storage error : %s", err)
 			log.Errorf("delete detail info : %s %s", file.Bucket, storeFileName)

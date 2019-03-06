@@ -22,7 +22,7 @@ type App struct {
 	Config         *config.Config
 	Router         *mux.Router
 	DB             *gorm.DB
-	StorageHandler storage.Storage
+	Storage        storage.Storage
 	FullTempFolder string
 }
 
@@ -71,12 +71,12 @@ func (app *App) init(configFile string) (err error) {
 	}
 	app.Config = config
 
-	db, err := models.InitConnection()
+	db, err := models.InitDBConnection()
 	if err != nil {
 		return
 	}
 	app.DB = db
-	handler, err := storage.InitConnection()
+	app.Storage = storage.InitStorageManager()
 	if err != nil {
 		return
 	}
@@ -91,7 +91,5 @@ func (app *App) init(configFile string) (err error) {
 		log.Infof("create temp file in location: %s", fullTempPath)
 	}
 	app.FullTempFolder = fullTempPath
-	app.StorageHandler = handler
-
 	return
 }

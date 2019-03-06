@@ -6,10 +6,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	defer func() {
-		cleanTables(app)
-	}()
 	app := GetTestApp()
+	cleanTables(app)
 	createTables(app)
 	code := m.Run()
 	app.DB.Close()

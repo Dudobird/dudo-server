@@ -15,7 +15,7 @@ type MinioManager struct {
 }
 
 // NewMinioManager create a new storage manager
-func NewMinioManager(handler *minio.Client) Storage {
+func NewMinioManager(handler *minio.Client) *MinioManager {
 	if handler == nil {
 		return nil
 	}
