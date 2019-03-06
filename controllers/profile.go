@@ -14,7 +14,7 @@ import (
 
 // CreateProfile for create user profile
 func CreateProfile(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(auth.TokenContextKey).(uint)
+	user := r.Context().Value(auth.TokenContextKey).(string)
 	profile := &models.Profile{}
 
 	err := json.NewDecoder(r.Body).Decode(profile)

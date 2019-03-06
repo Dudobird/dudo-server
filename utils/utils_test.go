@@ -1,6 +1,8 @@
 package utils
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestGetReadableFileSize(t *testing.T) {
 	testCases := []struct {
@@ -35,5 +37,38 @@ func TestGetReadableFileSize(t *testing.T) {
 
 	for _, tc := range testCases {
 		Equals(t, GetReadableFileSize(tc.input), tc.expect)
+	}
+}
+
+func TestGenRandomID(t *testing.T) {
+	testCases := []struct {
+		length       int
+		prefix       string
+		expectLength int
+	}{
+		{
+			length:       10,
+			prefix:       "user",
+			expectLength: 15,
+		},
+		{
+			length:       0,
+			prefix:       "user",
+			expectLength: 4,
+		},
+		{
+			length:       -2,
+			prefix:       "user",
+			expectLength: 4,
+		},
+		{
+			length:       10,
+			prefix:       "",
+			expectLength: 10,
+		},
+	}
+
+	for _, tc := range testCases {
+		Equals(t, tc.expectLength, len(GenRandomID(tc.prefix, tc.length)))
 	}
 }

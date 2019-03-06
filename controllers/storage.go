@@ -15,7 +15,7 @@ import (
 
 // CreateFolder create a folder from post data
 func CreateFolder(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(auth.TokenContextKey).(uint)
+	userID := r.Context().Value(auth.TokenContextKey).(string)
 	_, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, errWithCode)
@@ -38,7 +38,7 @@ func CreateFolder(w http.ResponseWriter, r *http.Request) {
 
 // GetTopLevelFiles list all top level files when user login success
 func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(auth.TokenContextKey).(uint)
+	userID := r.Context().Value(auth.TokenContextKey).(string)
 	user, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, errWithCode)
@@ -65,7 +65,7 @@ func GetCurrentFile(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	userID := r.Context().Value(auth.TokenContextKey).(uint)
+	userID := r.Context().Value(auth.TokenContextKey).(string)
 	user, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, errWithCode)
@@ -91,7 +91,7 @@ func ListSubFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	userID := r.Context().Value(auth.TokenContextKey).(uint)
+	userID := r.Context().Value(auth.TokenContextKey).(string)
 	user, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, errWithCode)
@@ -122,7 +122,7 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 		return
 	}
-	userID := r.Context().Value(auth.TokenContextKey).(uint)
+	userID := r.Context().Value(auth.TokenContextKey).(string)
 	user, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)

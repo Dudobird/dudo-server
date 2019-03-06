@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Dudobird/dudo-server/config"
@@ -20,7 +21,7 @@ type StorageFile struct {
 	CreatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
 	UpdatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
 	DeletedAt *time.Time
-	UserID    uint `json:"user_id"`
+	UserID    string `json:"user_id"`
 }
 
 // MarshalJSON custom json response
@@ -51,7 +52,7 @@ type RawStorageFileInfo struct {
 }
 
 func (sf *StorageFile) validation() *utils.CustomError {
-	if sf.UserID == 0 {
+	if sf.UserID == "" {
 		return &utils.ErrPostDataNotCorrect
 	}
 	parent := &StorageFile{}
@@ -85,17 +86,17 @@ func (sf *StorageFile) validation() *utils.CustomError {
 
 // CreateFolder will create a new folder from post data
 // if file type is folder just create in database
-func (sf *StorageFile) CreateFolder(uid uint) *utils.CustomError {
+func (s *StorageFile) CreateFolder(uid string) *utils.CustomError {
 	// valid user post data
-	if err := sf.validation(); err != nil {
+	if err := s.validation(); err != nil {
 		return err
 	}
-	if sf.IsDir == false {
+	if s.IsDir == false {
 		return &utils.ErrPostDataNotCorrect
 	}
 	id := uuid.NewV4()
-	sf.ID = id.String()
-	err := GetDB().Model(&StorageFile{}).Create(sf).Error
+	s.ID = id.String()
+	err := GetDB().Model(&StorageFile{}).Create(s).Error
 	if err != nil {
 		return &utils.ErrInternalServerError
 	}
@@ -137,7 +138,8 @@ func (swu *StorageFilesWithUser) ListChildren(parentID string) ([]StorageFile, *
 // SaveFromRawFiles files from raw info
 func (swu *StorageFilesWithUser) SaveFromRawFiles(files []RawStorageFileInfo) error {
 	config := config.GetConfig()
-	bucketName := fmt.Sprintf("%s-%d", config.Application.BucketPrefix, swu.Owner.ID)
+	id := strings.ToLower(strings.TrimLeft(swu.Owner.ID, "user_"))
+	bucketName := fmt.Sprintf("%s-%s", config.Application.BucketPrefix, id)
 	for _, file := range files {
 		file.Bucket = bucketName
 		swu.Files = append(

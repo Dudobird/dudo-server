@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 
 	"github.com/Dudobird/dudo-server/controllers"
 	"github.com/Dudobird/dudo-server/core"
@@ -57,7 +58,8 @@ func cleanTables(app *core.App) {
 
 func tearDownStorages() {
 	models.GetDB().Unscoped().Model(&models.StorageFile{}).Delete(&models.StorageFile{})
-	bucketName := fmt.Sprintf("dudotest-%d", UserID)
+	userID := strings.ToLower(strings.TrimLeft(UserID, "user_"))
+	bucketName := fmt.Sprintf("dudotest-%s", userID)
 	GetTestApp().Storage.CleanBucket(bucketName)
 	log.Println("remove files data for database and storage success")
 }
@@ -69,7 +71,7 @@ var testUser = &models.User{
 }
 
 // UserID save created user id
-var UserID uint
+var UserID string
 
 // UserResponse save response from api response
 type UserResponse struct {
@@ -79,7 +81,7 @@ type UserResponse struct {
 		Email    string `json:"email"`
 		Token    string `json:"token"`
 		Password string `json:"password"`
-		ID       uint   `json:"id"`
+		ID       string `json:"id"`
 	}
 }
 
@@ -101,7 +103,7 @@ func signUpTestUser(app *core.App) (*UserResponse, error) {
 }
 
 func tearDownUser(app *core.App) {
-	app.DB.Unscoped().Where("id >= 0").Delete(&models.User{})
+	app.DB.Unscoped().Delete(&models.User{})
 }
 
 // StoragesResponse save the response infomation

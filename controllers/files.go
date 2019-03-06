@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 
@@ -25,7 +26,7 @@ import (
 // save it to temp folder and wait for upload to storage
 // user post data to /api/upload/root or /api/upload/**-**-**-**(parentID)
 func UploadFiles(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(auth.TokenContextKey).(uint)
+	userID := r.Context().Value(auth.TokenContextKey).(string)
 	vars := mux.Vars(r)
 
 	parentID := vars["parentID"]
@@ -53,10 +54,12 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 	// the tempfile will be userid_timestamp_realfilename
 	id := uuid.NewV4()
+	// bucket name has some restric
+	// https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
 	bucketName := fmt.Sprintf(
-		"%s-%d",
+		"%s-%s",
 		app.Config.Application.BucketPrefix,
-		userID,
+		strings.ToLower(strings.TrimLeft(userID, "user_")),
 	)
 	fileName := fmt.Sprintf("%s_%s", id, handler.Filename)
 	tempFileName := app.FullTempFolder + string(filepath.Separator) + fileName
@@ -98,7 +101,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 
 // DownloadFiles will down load files from storages
 func DownloadFiles(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(auth.TokenContextKey).(uint)
+	userID := r.Context().Value(auth.TokenContextKey).(string)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	if utils.ValidateUUID(id) == false {

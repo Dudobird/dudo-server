@@ -8,7 +8,7 @@ import (
 // Profile for user information
 type Profile struct {
 	gorm.Model
-	UserID       uint `json:"user_id"`
+	UserID       string `json:"user_id"`
 	User         User
 	Name         string `json:"name" `
 	Phone        string `json:"phone"`
@@ -33,7 +33,7 @@ func GetUserProfile(accountID uint) (*Profile, *utils.CustomError) {
 // Validate will check the field of Profile and
 // return true if everything is fine
 func (profile *Profile) Validate() *utils.CustomError {
-	if profile.UserID <= 0 {
+	if profile.UserID == "" {
 		return &utils.ErrUserNotFound
 	}
 	if profile.Name != "" && (len(profile.Name) <= 3 || len(profile.Name) >= 20) {

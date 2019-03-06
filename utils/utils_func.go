@@ -1,6 +1,9 @@
 package utils
 
-import "fmt"
+import (
+	"crypto/rand"
+	"fmt"
+)
 
 // const for storage caculation
 const (
@@ -9,6 +12,11 @@ const (
 	GB = MB * 1024
 	TB = GB * 1024
 	PB = TB * 1024
+)
+
+const (
+	idSource      = "0123456789qwertyuioasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM"
+	lenOfIDSource = byte(len(idSource))
 )
 
 // GetReadableFileSize get the storage
@@ -30,4 +38,20 @@ func GetReadableFileSize(size float64) string {
 	default:
 		return ""
 	}
+}
+
+// GenRandomID generate a random id with prefix
+func GenRandomID(prefix string, length int) string {
+	if length <= 0 {
+		return prefix
+	}
+	id := make([]byte, length)
+	rand.Read(id)
+	for i, b := range id {
+		id[i] = idSource[b%lenOfIDSource]
+	}
+	if prefix == "" {
+		return string(id)
+	}
+	return fmt.Sprintf("%s_%s", prefix, string(id))
 }

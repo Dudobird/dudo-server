@@ -19,29 +19,32 @@ import (
 
 // Token contains the user authenticate information
 type Token struct {
-	UserID uint
+	UserID string
 	jwt.StandardClaims
 }
 
 // User include user authenticate information
 type User struct {
-	gorm.Model
-	Email    string        `json:"email" gorm:"not null;type:varchar(100);unique_index"`
-	Password string        `json:"password" gorm:"not null"`
-	Token    string        `json:"token" sql:"-"`
-	Files    []StorageFile `json:"-"`
+	ID        string    `json:"id" gorm:"primary_key"`
+	CreatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
+	UpdatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
+	DeletedAt *time.Time
+	Email     string        `json:"email" gorm:"not null;type:varchar(100);unique_index"`
+	Password  string        `json:"password" gorm:"not null"`
+	Token     string        `json:"token" sql:"-"`
+	Files     []StorageFile `json:"-"`
 }
 
 // ToJSONBytes will format the accout information to json []byte
-func (account *User) ToJSONBytes() []byte {
-	return []byte(fmt.Sprintf(`{"email":"%s","password":"%s"}`, account.Email, account.Password))
+func (u *User) ToJSONBytes() []byte {
+	return []byte(fmt.Sprintf(`{"email":"%s","password":"%s"}`, u.Email, u.Password))
 }
 
 // CheckIfEmailExist return true if email already exist in database
 // return error != nil when sever query fail
-func (account *User) CheckIfEmailExist() (bool, error) {
+func (u *User) CheckIfEmailExist() (bool, error) {
 	temp := &User{}
-	err := GetDB().Table("users").Where("email=?", account.Email).First(temp).Error
+	err := GetDB().Table("users").Where("email=?", u.Email).First(temp).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		log.Errorln(err)
 		return false, errors.New("server unavailable")
@@ -64,13 +67,13 @@ func accountValidate(validate *validator.Validate, field string, value string) e
 }
 
 // Validate will check if the user registe info is correct
-func (account *User) Validate() (bool, string) {
+func (u *User) Validate() (bool, string) {
 	validate := validator.New()
-	err := accountValidate(validate, "email", account.Email)
+	err := accountValidate(validate, "email", u.Email)
 	if err != nil {
 		return false, "email address is require"
 	}
-	err = accountValidate(validate, "password", account.Password)
+	err = accountValidate(validate, "password", u.Password)
 	if err != nil {
 		return false, "password is required"
 	}
@@ -78,12 +81,12 @@ func (account *User) Validate() (bool, string) {
 	return true, "validate success"
 }
 
-func (account *User) createToken() (string, error) {
+func (u *User) createToken() (string, error) {
 	tokenSecret := config.GetConfig().Application.Token
 	token := jwt.NewWithClaims(
 		jwt.GetSigningMethod("HS256"),
 		&Token{
-			UserID: account.ID,
+			UserID: u.ID,
 			StandardClaims: jwt.StandardClaims{
 				ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 			},
@@ -94,29 +97,29 @@ func (account *User) createToken() (string, error) {
 }
 
 // Create will valid user infomation and create it
-func (account *User) Create() *utils.Message {
-	if status, message := account.Validate(); status != true {
+func (u *User) Create() *utils.Message {
+	if status, message := u.Validate(); status != true {
 		return utils.NewMessage(http.StatusBadRequest, message)
 	}
-	if status, err := account.CheckIfEmailExist(); status == true || err != nil {
+	if status, err := u.CheckIfEmailExist(); status == true || err != nil {
 		return utils.NewMessage(http.StatusBadRequest, err.Error())
 	}
-	hashedPasswd, _ := bcrypt.GenerateFromPassword([]byte(account.Password), bcrypt.DefaultCost)
-	account.Password = string(hashedPasswd)
-
-	GetDB().Create(account)
-	if account.ID <= 0 {
-		log.Errorf("server create account fail for %s", account.Email)
+	hashedPasswd, _ := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	u.Password = string(hashedPasswd)
+	u.ID = utils.GenRandomID("user", 12)
+	err := GetDB().Create(u).Error
+	if err != nil {
+		log.Errorf("server create account fail for %s:%s", u.Email, err)
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
-	token, err := account.createToken()
+	token, err := u.createToken()
 	if err != nil {
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
-	account.Token = token
-	account.Password = ""
+	u.Token = token
+	u.Password = ""
 	message := utils.NewMessage(http.StatusCreated, "account create success")
-	message.Data = account
+	message.Data = u
 	return message
 }
 
@@ -160,10 +163,10 @@ func Login(email, password string) *utils.Message {
 }
 
 // Logout user will delete the user token from database
-func Logout(userID uint) *utils.Message {
+func Logout(userID string) *utils.Message {
 	account := &User{}
-	GetDB().Table("users").Where("id = ?", userID).First(account)
-	if account.Email == "" {
+	err := GetDB().Table("users").Where("id = ?", userID).First(account).Error
+	if err == gorm.ErrRecordNotFound {
 		return utils.NewMessage(http.StatusNotFound, "user not found")
 	}
 	account.Token = ""
@@ -171,7 +174,7 @@ func Logout(userID uint) *utils.Message {
 }
 
 // UpdatePassword update the user password
-func UpdatePassword(userID uint, password, newPassword string) *utils.Message {
+func UpdatePassword(userID string, password, newPassword string) *utils.Message {
 	validate := validator.New()
 	if err := accountValidate(validate, "password", newPassword); err != nil {
 		return utils.NewMessage(http.StatusBadRequest, "new password format error")
@@ -197,7 +200,7 @@ func UpdatePassword(userID uint, password, newPassword string) *utils.Message {
 }
 
 // GetUser return user infomation based userid
-func GetUser(userID uint) (*User, *utils.CustomError) {
+func GetUser(userID string) (*User, *utils.CustomError) {
 	account := &User{}
 	err := GetDB().Table("users").Where("id = ?", userID).First(account).Error
 	if err != nil {
