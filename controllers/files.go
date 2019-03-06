@@ -14,8 +14,6 @@ import (
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/gorilla/mux"
 
-	uuid "github.com/satori/go.uuid"
-
 	"github.com/Dudobird/dudo-server/core"
 	"github.com/Dudobird/dudo-server/utils"
 
@@ -24,18 +22,24 @@ import (
 
 // UploadFiles receive user upload file
 // save it to temp folder and wait for upload to storage
-// user post data to /api/upload/root or /api/upload/**-**-**-**(parentID)
 func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.TokenContextKey).(string)
 	vars := mux.Vars(r)
-
 	parentID := vars["parentID"]
 	if parentID == "root" {
 		parentID = ""
-	}
-	if parentID != "" && utils.ValidateUUID(parentID) == false {
-		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
-		return
+	} else {
+		// query if parentID exist
+		var exist int
+		err := models.GetDB().Model(models.StorageFile{}).Where("id = ?", parentID).Count(&exist).Error
+		if err != nil {
+			utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
+			return
+		}
+		if exist == 0 {
+			utils.JSONRespnseWithErr(w, &utils.ErrResourceNotFound)
+			return
+		}
 	}
 	app := core.GetApp()
 	if app == nil {
@@ -47,13 +51,13 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(64 << 20)
 	file, handler, err := r.FormFile("uploadfile")
 	if err != nil {
-		log.Errorf("Upload file fail : %s ", err)
+		log.Errorf("upload file fail : %s ", err)
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
 	defer file.Close()
 	// the tempfile will be userid_timestamp_realfilename
-	id := uuid.NewV4()
+	id := utils.GenRandomID("file", 15)
 	// bucket name has some restric
 	// https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
 	bucketName := fmt.Sprintf(
@@ -61,6 +65,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		app.Config.Application.BucketPrefix,
 		strings.ToLower(strings.TrimLeft(userID, "user_")),
 	)
+
 	fileName := fmt.Sprintf("%s_%s", id, handler.Filename)
 	tempFileName := app.FullTempFolder + string(filepath.Separator) + fileName
 	f, err := os.OpenFile(tempFileName, os.O_WRONLY|os.O_CREATE, 0666)
@@ -85,7 +90,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	s := models.StorageFile{
 		UserID: userID,
 		RawStorageFileInfo: models.RawStorageFileInfo{
-			ID:       id.String(),
+			ID:       id,
 			FileName: handler.Filename,
 			Bucket:   bucketName,
 			IsDir:    false,
@@ -95,7 +100,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	app.DB.Save(&s)
-	utils.JSONMessageWithData(w, 201, "", id.String())
+	utils.JSONMessageWithData(w, 201, "", id)
 	return
 }
 
@@ -104,10 +109,6 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.TokenContextKey).(string)
 	vars := mux.Vars(r)
 	id := vars["id"]
-	if utils.ValidateUUID(id) == false {
-		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
-		return
-	}
 	app := core.GetApp()
 	if app == nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)

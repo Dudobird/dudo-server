@@ -33,7 +33,7 @@ func TestPostFormDataToCreateFiles(t *testing.T) {
 			formDataName: "uploadfile",
 			filePath:     "./files/1.file",
 			token:        token,
-			statusCode:   400,
+			statusCode:   404,
 		},
 		{
 			url:          "/api/upload/storage/root",
@@ -66,7 +66,6 @@ func TestCreateFolders(t *testing.T) {
 		tearDownUser(app)
 		tearDownStorages()
 	}()
-
 	testCase := []struct {
 		fileInfo   []byte
 		statuscode int
@@ -203,7 +202,7 @@ func TestListCurrentFileWithID(t *testing.T) {
 		},
 		{
 			id:         "not-exist",
-			statuscode: 400,
+			statuscode: 404,
 			token:      token,
 		},
 		{
@@ -270,7 +269,7 @@ func TestListChildFilesWithID(t *testing.T) {
 		},
 		{
 			id:         "not-exist",
-			statuscode: 400,
+			statuscode: 200,
 			token:      token,
 			length:     0,
 		},
@@ -352,7 +351,7 @@ func TestDeleteFilesWithID(t *testing.T) {
 		},
 		{
 			id:         "not-exist",
-			statuscode: 400,
+			statuscode: 200,
 			token:      token,
 		},
 		{

@@ -256,6 +256,7 @@ func setUpRealFiles(token string) (map[string]models.StorageFile, map[string]mod
 			files[file.FileName] = file
 		}
 	}
+
 	return folders, files
 }
 

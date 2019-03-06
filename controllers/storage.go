@@ -61,10 +61,6 @@ func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
 func GetCurrentFile(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	if utils.ValidateUUID(id) == false {
-		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
-		return
-	}
 	userID := r.Context().Value(auth.TokenContextKey).(string)
 	user, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
@@ -87,10 +83,6 @@ func GetCurrentFile(w http.ResponseWriter, r *http.Request) {
 func ListSubFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	if utils.ValidateUUID(id) == false {
-		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
-		return
-	}
 	userID := r.Context().Value(auth.TokenContextKey).(string)
 	user, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
@@ -113,10 +105,6 @@ func ListSubFiles(w http.ResponseWriter, r *http.Request) {
 func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	if utils.ValidateUUID(id) == false {
-		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
-		return
-	}
 	app := core.GetApp()
 	if app == nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)

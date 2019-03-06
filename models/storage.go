@@ -11,8 +11,6 @@ import (
 	"github.com/jinzhu/gorm"
 
 	"github.com/Dudobird/dudo-server/utils"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 // StorageFile for store user files
@@ -94,8 +92,7 @@ func (s *StorageFile) CreateFolder(uid string) *utils.CustomError {
 	if s.IsDir == false {
 		return &utils.ErrPostDataNotCorrect
 	}
-	id := uuid.NewV4()
-	s.ID = id.String()
+	s.ID = utils.GenRandomID("folder", 15)
 	err := GetDB().Model(&StorageFile{}).Create(s).Error
 	if err != nil {
 		return &utils.ErrInternalServerError

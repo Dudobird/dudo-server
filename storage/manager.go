@@ -43,7 +43,7 @@ func (m *MinioManager) checkOrCreateBucket(bucket string) error {
 	return nil
 }
 
-// Upload will upload file and return a uuid and path
+// Upload will upload file
 func (m *MinioManager) Upload(filePath string, fileName string, bucketName string) (path string, err error) {
 	err = m.checkOrCreateBucket(bucketName)
 	if err != nil {
