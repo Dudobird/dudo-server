@@ -117,7 +117,7 @@ type StoragesResponse struct {
 		Bucket   string `json:"bucket"`
 		Path     string `json:"path"`
 		IsDir    bool   `json:"is_dir"`
-		ParentID string `json:"parent_id"`
+		FolderID string `json:"folder_id"`
 	}
 }
 
@@ -140,7 +140,7 @@ type SingleStoragesResponse struct {
 		Bucket   string `json:"bucket"`
 		Path     string `json:"path"`
 		IsDir    bool   `json:"is_dir"`
-		ParentID string `json:"parent_id"`
+		FolderID string `json:"folder_id"`
 	}
 }
 
@@ -182,7 +182,7 @@ func setUpRealFiles(token string) (map[string]models.StorageFile, map[string]mod
 	}
 
 	for _, test := range testCase {
-		req, _ := http.NewRequest("POST", "/api/storages", bytes.NewBuffer(test.fileInfo))
+		req, _ := http.NewRequest("POST", "/api/folders", bytes.NewBuffer(test.fileInfo))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+test.token)
 		rr := httptest.NewRecorder()
@@ -208,28 +208,28 @@ func setUpRealFiles(token string) (map[string]models.StorageFile, map[string]mod
 		statusCode   int
 	}{
 		{
-			url:          "/api/upload/storage/" + folders["files"].ID,
+			url:          "/api/upload/files/" + folders["files"].ID,
 			formDataName: "uploadfile",
 			filePath:     "./files/1.file",
 			token:        token,
 			statusCode:   201,
 		},
 		{
-			url:          "/api/upload/storage/" + folders["backup"].ID,
+			url:          "/api/upload/files/" + folders["backup"].ID,
 			formDataName: "uploadfile",
 			filePath:     "./files/1.file",
 			token:        token,
 			statusCode:   201,
 		},
 		{
-			url:          "/api/upload/storage/" + folders["files"].ID,
+			url:          "/api/upload/files/" + folders["files"].ID,
 			formDataName: "uploadfile",
 			filePath:     "./files/2.file",
 			token:        token,
 			statusCode:   201,
 		},
 		{
-			url:          "/api/upload/storage/" + folders["files"].ID,
+			url:          "/api/upload/files/" + folders["files"].ID,
 			formDataName: "uploadfile",
 			filePath:     "./files/3.file",
 			token:        token,
@@ -251,7 +251,7 @@ func setUpRealFiles(token string) (map[string]models.StorageFile, map[string]mod
 	// only return three files in `files` folder
 	for _, file := range rawFiels {
 
-		if file.ParentID != folders["backup"].ID {
+		if file.FolderID != folders["backup"].ID {
 
 			files[file.FileName] = file
 		}
@@ -303,7 +303,7 @@ func fileUploadRequest(url, paramName, path, token string) (*httptest.ResponseRe
 	req = req.WithContext(ctx)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/upload/storage/{parentID}", controllers.UploadFiles)
+	router.HandleFunc("/api/upload/files/{folderID}", controllers.UploadFiles)
 	router.ServeHTTP(rr, req)
 	return rr, nil
 }

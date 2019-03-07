@@ -36,29 +36,8 @@ func CreateFolder(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetTopLevelFiles list all top level files when user login success
-func GetTopLevelFiles(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(auth.TokenContextKey).(string)
-	user, errWithCode := models.GetUser(userID)
-	if errWithCode != nil {
-		utils.JSONRespnseWithErr(w, errWithCode)
-		return
-	}
-	swu := models.StorageFilesWithUser{
-		Owner: user,
-	}
-
-	data, errWithCode := swu.GetTopFiles()
-	if errWithCode != nil {
-		utils.JSONRespnseWithErr(w, errWithCode)
-		return
-	}
-	utils.JSONMessageWithData(w, 200, "", data)
-	return
-}
-
-// GetCurrentFile get information about one file or folder based the post id
-func GetCurrentFile(w http.ResponseWriter, r *http.Request) {
+// GetFileInfo get information about one file or folder based the post id
+func GetFileInfo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	userID := r.Context().Value(auth.TokenContextKey).(string)
@@ -79,8 +58,8 @@ func GetCurrentFile(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// ListSubFiles list all top level files when user login success
-func ListSubFiles(w http.ResponseWriter, r *http.Request) {
+// ListFolderFiles list all top level files when user login success
+func ListFolderFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	userID := r.Context().Value(auth.TokenContextKey).(string)

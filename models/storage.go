@@ -2,11 +2,7 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 	"time"
-
-	"github.com/Dudobird/dudo-server/config"
 
 	"github.com/jinzhu/gorm"
 
@@ -41,29 +37,27 @@ type RawStorageFileInfo struct {
 	// if you use local storage bucket will be folder name
 	Bucket string `json:"bucket"`
 
-	FileSize int64 `json:"file_size"`
-	// ParentID logic parent id
-	ParentID string `json:"parent_id" gorm:"not null;default:''"`
+	FileSize int64  `json:"file_size"`
+	FolderID string `json:"folder_id" gorm:"not null;default:''"`
 	IsDir    bool   `json:"is_dir" gorm:"not null"`
-	// remote minio storage path
-	Path string `json:"path" gorm:"not null"`
+	Path     string `json:"path" gorm:"not null"`
 }
 
-func (sf *StorageFile) validation() *utils.CustomError {
-	if sf.UserID == "" {
+func (s *StorageFile) validation() *utils.CustomError {
+	if s.UserID == "" {
 		return &utils.ErrPostDataNotCorrect
 	}
-	parent := &StorageFile{}
+	folder := &StorageFile{}
 	// file name validation
-	if sf.FileName == "" || len(sf.FileName) > 50 {
+	if s.FileName == "" || len(s.FileName) > 50 {
 		return &utils.ErrPostDataNotCorrect
 	}
-	// if parentid not exist, it will create in root position
-	// or validate if parentid exist or not
-	if sf.ParentID != "" {
+	// if folderID not exist, it will create in root position
+	// or validate if folder exist or not
+	if s.FolderID != "root" && s.FolderID != "" {
 		// create top level
 		// check parent id exist or not
-		err := GetDB().Model(&StorageFile{}).Where("id = ?", sf.ParentID).First(parent).Error
+		err := GetDB().Model(&StorageFile{}).Where("id = ?", s.FolderID).First(folder).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return &utils.ErrResourceNotFound
@@ -72,7 +66,7 @@ func (sf *StorageFile) validation() *utils.CustomError {
 		}
 	}
 	// check if resource already exist in same folder with same filename
-	err := GetDB().Where("file_name = ? AND parent_id = ?", sf.FileName, sf.ParentID).First(parent).Error
+	err := GetDB().Where("file_name = ? AND folder_id = ?", s.FileName, s.FolderID).First(folder).Error
 	if err == nil {
 		return &utils.ErrResourceAlreadyExist
 	}
@@ -120,12 +114,9 @@ func (swu *StorageFilesWithUser) ListCurrentFile(id string) (*StorageFile, *util
 }
 
 // ListChildren list the file and all subfiles
-func (swu *StorageFilesWithUser) ListChildren(parentID string) ([]StorageFile, *utils.CustomError) {
-	if parentID == "root" {
-		parentID = ""
-	}
+func (swu *StorageFilesWithUser) ListChildren(folderID string) ([]StorageFile, *utils.CustomError) {
 	files := []StorageFile{}
-	err := GetDB().Model(&StorageFile{}).Where("parent_id=? and user_id=?", parentID, swu.Owner.ID).Find(&files).Error
+	err := GetDB().Model(&StorageFile{}).Where("folder_id=? and user_id=?", folderID, swu.Owner.ID).Find(&files).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, &utils.ErrResourceNotFound
@@ -135,36 +126,11 @@ func (swu *StorageFilesWithUser) ListChildren(parentID string) ([]StorageFile, *
 	return files, nil
 }
 
-// SaveFromRawFiles files from raw info
-func (swu *StorageFilesWithUser) SaveFromRawFiles(files []RawStorageFileInfo) error {
-	config := config.GetConfig()
-	id := strings.ToLower(strings.TrimLeft(swu.Owner.ID, "user_"))
-	bucketName := fmt.Sprintf("%s-%s", config.Application.BucketPrefix, id)
-	for _, file := range files {
-		file.Bucket = bucketName
-		swu.Files = append(
-			swu.Files,
-			&StorageFile{
-				CreatedAt:          time.Now(),
-				UpdatedAt:          time.Now(),
-				RawStorageFileInfo: file,
-			},
-		)
-	}
-	err := GetDB().Model(swu.Owner).Association("Files").Append(swu.Files).Error
-	return err
-}
-
-// GetTopFiles get user first level of files
-func (swu *StorageFilesWithUser) GetTopFiles() ([]StorageFile, *utils.CustomError) {
-	return swu.ListChildren("")
-}
-
 // DeleteFilesFromID delete files based on its id and delete all subfiles
 // return the files infomation to delete in storage
 func (swu *StorageFilesWithUser) DeleteFilesFromID(id string) ([]StorageFile, *utils.CustomError) {
 	pendingDeleteFiles := []StorageFile{}
-	err := GetDB().Where("id=?", id).Or("parent_id=?", id).Find(&pendingDeleteFiles).Error
+	err := GetDB().Where("id=?", id).Or("folder_id=?", id).Find(&pendingDeleteFiles).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return pendingDeleteFiles, &utils.ErrResourceNotFound

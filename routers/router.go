@@ -45,18 +45,15 @@ func LoadRouters() (router *mux.Router, err error) {
 	router.HandleFunc("/api/auth/logout", controllers.Logout).Methods("GET")
 	router.HandleFunc("/api/auth/password", controllers.UpdatePassword).Methods("UPDATE")
 
-	router.HandleFunc("/api/storages", controllers.CreateFolder).Methods("POST")
-	router.HandleFunc("/api/storages", controllers.GetTopLevelFiles).Methods("GET")
-	router.HandleFunc("/api/storage/{id}", controllers.GetCurrentFile).Methods("GET")
-	router.HandleFunc("/api/storage/{id}", controllers.DeleteFiles).Methods("DELETE")
-	router.HandleFunc("/api/storage/{id}/subfiles", controllers.ListSubFiles).Methods("GET")
+	router.HandleFunc("/api/folders", controllers.CreateFolder).Methods("POST")
+	router.HandleFunc("/api/folders/{id}", controllers.ListFolderFiles).Methods("GET")
 
-	router.HandleFunc("/api/upload/storage/{parentID}", controllers.UploadFiles).Methods("POST")
-	router.HandleFunc("/api/download/storage/{id}", controllers.DownloadFiles).Methods("GET")
+	router.HandleFunc("/api/files/{id}", controllers.GetFileInfo).Methods("GET")
+	router.HandleFunc("/api/files/{id}", controllers.DeleteFiles).Methods("DELETE")
+	// for top level becouse no folder just set it to `root`
+	router.HandleFunc("/api/upload/files/{folderID}", controllers.UploadFiles).Methods("POST")
+	router.HandleFunc("/api/download/files/{id}", controllers.DownloadFiles).Methods("GET")
 
 	log.Infoln("load api routers success")
-	// // static files
-	// router.Handle("/", http.FileServer(http.Dir("../frontend/")))
-	// router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("../frontend/static/"))))
 	return
 }

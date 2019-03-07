@@ -25,13 +25,12 @@ import (
 func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.TokenContextKey).(string)
 	vars := mux.Vars(r)
-	parentID := vars["parentID"]
-	if parentID == "root" {
-		parentID = ""
-	} else {
-		// query if parentID exist
+	folderID := vars["folderID"]
+	// folderID is root for upload to top level of folders
+	if folderID != "root" {
+		// search id exist or not
 		var exist int
-		err := models.GetDB().Model(models.StorageFile{}).Where("id = ?", parentID).Count(&exist).Error
+		err := models.GetDB().Model(models.StorageFile{}).Where("id = ?", folderID).Count(&exist).Error
 		if err != nil {
 			utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 			return
@@ -41,7 +40,6 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	app := core.GetApp()
 	if app == nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
@@ -58,7 +56,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 	existCheckStorage := &models.StorageFile{}
-	notFoundChecker := models.GetDB().Where(&models.StorageFile{RawStorageFileInfo: models.RawStorageFileInfo{ParentID: parentID, FileName: handler.Filename}}).First(&existCheckStorage).RecordNotFound()
+	notFoundChecker := models.GetDB().Where(&models.StorageFile{RawStorageFileInfo: models.RawStorageFileInfo{FolderID: folderID, FileName: handler.Filename}}).First(&existCheckStorage).RecordNotFound()
 	if notFoundChecker == false {
 		utils.JSONRespnseWithErr(w, &utils.ErrResourceAlreadyExist)
 		return
@@ -102,7 +100,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 			Bucket:   bucketName,
 			IsDir:    false,
 			FileSize: size,
-			ParentID: parentID,
+			FolderID: folderID,
 			Path:     path,
 		},
 	}
