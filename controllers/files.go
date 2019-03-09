@@ -54,6 +54,15 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
+	buff := make([]byte, 512)
+	_, err = file.Read(buff)
+	if err != nil {
+		log.Errorf("upload file fail : %s ", err)
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
+		return
+	}
+	// https://golang.org/pkg/net/http/#DetectContentType
+	mimeType := http.DetectContentType(buff)
 	defer file.Close()
 	existCheckStorage := &models.StorageFile{}
 	notFoundChecker := models.GetDB().Where(&models.StorageFile{RawStorageFileInfo: models.RawStorageFileInfo{FolderID: folderID, FileName: handler.Filename}}).First(&existCheckStorage).RecordNotFound()
@@ -61,9 +70,10 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrResourceAlreadyExist)
 		return
 	}
+
 	// the tempfile will be userid_timestamp_realfilename
 	id := utils.GenRandomID("file", 15)
-	// bucket name has some restric
+	// bucket name has some restrict
 	// https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
 	bucketName := fmt.Sprintf(
 		"%s-%s",
@@ -83,6 +93,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 		return
 	}
+	file.Seek(0, 0)
 	size, _ := io.Copy(f, file)
 	defer f.Close()
 	path, err := app.Storage.Upload(tempFileName, fileName, bucketName)
@@ -99,6 +110,8 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 			FileName: handler.Filename,
 			Bucket:   bucketName,
 			IsDir:    false,
+			MIMEType: mimeType,
+			FileType: utils.GetFileExtention(handler.Filename),
 			FileSize: size,
 			FolderID: folderID,
 			Path:     path,

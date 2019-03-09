@@ -35,12 +35,13 @@ type RawStorageFileInfo struct {
 	ID       string `json:"id" gorm:"primary_key"`
 	FileName string `json:"file_name" gorm:"not null;index:idx_file_name"`
 	// if you use local storage bucket will be folder name
-	Bucket string `json:"bucket"`
-
-	FileSize int64  `json:"file_size"`
+	Bucket   string `json:"bucket"  gorm:"not null;default:''"`
+	MIMEType string `json:"mime_type"`
+	FileType string `json:"file_type"`
+	FileSize int64  `json:"file_size"  gorm:"not null;default:0"`
 	FolderID string `json:"folder_id" gorm:"not null;default:''"`
-	IsDir    bool   `json:"is_dir" gorm:"not null"`
-	Path     string `json:"path" gorm:"not null"`
+	IsDir    bool   `json:"is_dir" gorm:"not null;default:0"`
+	Path     string `json:"path" gorm:"not null;default:''"`
 }
 
 func (s *StorageFile) validation() *utils.CustomError {

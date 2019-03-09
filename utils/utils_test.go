@@ -72,3 +72,35 @@ func TestGenRandomID(t *testing.T) {
 		Equals(t, tc.expectLength, len(GenRandomID(tc.prefix, tc.length)))
 	}
 }
+
+func TestGetFileExtention(t *testing.T) {
+	testCases := []struct {
+		fileName string
+		expect   string
+	}{
+		{
+			fileName: " abc.doc ",
+			expect:   "doc",
+		},
+		{
+			fileName: "abc.doc",
+			expect:   "doc",
+		},
+		{
+			fileName: "abc.pdf",
+			expect:   "pdf",
+		},
+		{
+			fileName: "abc",
+			expect:   "file",
+		},
+		{
+			fileName: "",
+			expect:   "",
+		},
+	}
+
+	for _, tc := range testCases {
+		Equals(t, tc.expect, GetFileExtention(tc.fileName))
+	}
+}

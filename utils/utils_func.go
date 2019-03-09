@@ -3,6 +3,8 @@ package utils
 import (
 	"crypto/rand"
 	"fmt"
+	"path/filepath"
+	"strings"
 )
 
 // const for storage caculation
@@ -54,4 +56,18 @@ func GenRandomID(prefix string, length int) string {
 		return string(id)
 	}
 	return fmt.Sprintf("%s_%s", prefix, string(id))
+}
+
+// GetFileExtention get the extensions from file
+// if no extensions just return 'file'
+func GetFileExtention(fileName string) string {
+	if fileName == "" {
+		return ""
+	}
+	name := strings.TrimSpace(fileName)
+	extension := filepath.Ext(name)
+	if len(extension) > 0 && extension[0] == '.' {
+		return extension[1:]
+	}
+	return "file"
 }
