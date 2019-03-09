@@ -115,9 +115,12 @@ type StoragesResponse struct {
 		ID       string `json:"id"`
 		FileName string `json:"file_name"`
 		Bucket   string `json:"bucket"`
-		Path     string `json:"path"`
-		IsDir    bool   `json:"is_dir"`
+		MIMEType string `json:"mime_type"`
+		FileType string `json:"file_type"`
+		FileSize int64  `json:"file_size"`
 		FolderID string `json:"folder_id"`
+		IsDir    bool   `json:"is_dir"`
+		Path     string `json:"path"`
 	}
 }
 
@@ -138,9 +141,12 @@ type SingleStoragesResponse struct {
 		ID       string `json:"id"`
 		FileName string `json:"file_name"`
 		Bucket   string `json:"bucket"`
-		Path     string `json:"path"`
-		IsDir    bool   `json:"is_dir"`
+		MIMEType string `json:"mime_type"`
+		FileType string `json:"file_type"`
+		FileSize int64  `json:"file_size"`
 		FolderID string `json:"folder_id"`
+		IsDir    bool   `json:"is_dir"`
+		Path     string `json:"path"`
 	}
 }
 

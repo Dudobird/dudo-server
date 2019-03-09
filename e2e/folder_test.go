@@ -128,3 +128,70 @@ func TestGetFolderFiles(t *testing.T) {
 		}
 	}
 }
+
+func TestRenameFileAndFolder(t *testing.T) {
+	app := GetTestApp()
+	userResponse, _ := signUpTestUser(app)
+	token := userResponse.Data.Token
+	_, files := setUpRealFiles(token)
+	defer func() {
+		tearDownUser(app)
+		tearDownStorages()
+	}()
+	testCases := []struct {
+		fileName   string
+		id         string
+		statusCode int
+		token      string
+		post       []byte
+		newName    string
+	}{
+		{
+			fileName:   "1.file",
+			id:         files["1.file"].ID,
+			statusCode: 200,
+			token:      token,
+			post:       []byte(`{"file_name":"changed_1.file"}`),
+			newName:    "changed_1.file",
+		},
+		{
+			fileName:   "1.file",
+			id:         files["1.file"].ID,
+			statusCode: 401,
+			token:      "",
+			post:       []byte(`{"file_name":"changed_1.file"}`),
+			newName:    "changed_1.file",
+		},
+		{
+			fileName:   "1.file",
+			id:         files["1.file"].ID,
+			statusCode: 200,
+			token:      token,
+			post:       []byte(`{"file_name":"1.file"}`),
+			newName:    "1.file",
+		},
+		{
+			fileName:   "1.file",
+			id:         files["1.file"].ID,
+			statusCode: 400,
+			token:      token,
+			post:       []byte(`{"file_name":"2.file"}`),
+			newName:    "2.file",
+		},
+	}
+	for _, tc := range testCases {
+		req, _ := http.NewRequest("PUT", "/api/files/"+tc.id, bytes.NewBuffer(tc.post))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+tc.token)
+		rr := httptest.NewRecorder()
+		app.Router.ServeHTTP(rr, req)
+		utils.Equals(t, tc.statusCode, rr.Code)
+		if rr.Code == 200 {
+			message := SingleStoragesResponse{}
+			if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
+				utils.OK(t, err)
+			}
+			utils.Equals(t, message.Data.FileName, tc.newName)
+		}
+	}
+}

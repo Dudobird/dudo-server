@@ -49,6 +49,7 @@ func LoadRouters() (router *mux.Router, err error) {
 	router.HandleFunc("/api/folders/{id}", controllers.ListFolderFiles).Methods("GET")
 
 	router.HandleFunc("/api/files/{id}", controllers.GetFileInfo).Methods("GET")
+	router.HandleFunc("/api/files/{id}", controllers.UpdateFileInfo).Methods("PUT")
 	router.HandleFunc("/api/files/{id}", controllers.DeleteFiles).Methods("DELETE")
 	// for top level becouse no folder just set it to `root`
 	router.HandleFunc("/api/upload/files/{folderID}", controllers.UploadFiles).Methods("POST")

@@ -36,6 +36,34 @@ func CreateFolder(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+//UpdateFileInfo will rename file name and change update
+func UpdateFileInfo(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	userID := r.Context().Value(auth.TokenContextKey).(string)
+	sf := &models.StorageFile{
+		RawStorageFileInfo: models.RawStorageFileInfo{
+			ID: id,
+		},
+		UserID: userID,
+	}
+	fileInfo := &struct {
+		Name string `json:"file_name"`
+	}{}
+	err := json.NewDecoder(r.Body).Decode(fileInfo)
+	if err != nil {
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
+		return
+	}
+	data, errWithCode := sf.RenameFileName(fileInfo.Name)
+	if errWithCode != nil {
+		utils.JSONRespnseWithErr(w, errWithCode)
+		return
+	}
+	utils.JSONMessageWithData(w, 200, "", data)
+	return
+}
+
 // GetFileInfo get information about one file or folder based the post id
 func GetFileInfo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
