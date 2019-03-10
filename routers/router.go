@@ -25,6 +25,11 @@ func appBindMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func notFound(w http.ResponseWriter, r *http.Request) {
+	utils.JSONMessageWithData(w, http.StatusNotFound, "url not exist", nil)
+	return
+}
+
 // LoadRouters will registe all controllers to router and return it
 // we will call this method in main function
 func LoadRouters() (router *mux.Router, err error) {
@@ -50,11 +55,13 @@ func LoadRouters() (router *mux.Router, err error) {
 
 	router.HandleFunc("/api/files/{id}", controllers.GetFileInfo).Methods("GET")
 	router.HandleFunc("/api/files/{id}", controllers.UpdateFileInfo).Methods("PUT")
+
+	// delete files
 	router.HandleFunc("/api/files/{id}", controllers.DeleteFiles).Methods("DELETE")
 	// for top level becouse no folder just set it to `root`
 	router.HandleFunc("/api/upload/files/{folderID}", controllers.UploadFiles).Methods("POST")
 	router.HandleFunc("/api/download/files/{id}", controllers.DownloadFiles).Methods("GET")
-
+	router.NotFoundHandler = http.HandlerFunc(notFound)
 	log.Infoln("load api routers success")
 	return
 }
