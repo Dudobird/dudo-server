@@ -29,10 +29,12 @@ type storage struct {
 }
 
 type application struct {
-	ListenAt     string `toml:"listenAt"`
-	Token        string `toml:"token"`
-	TempFolder   string `toml:"tempfolder"`
-	BucketPrefix string `toml:"bucket_prefix"`
+	ListenAt            string `toml:"listenAt"`
+	Token               string `toml:"token"`
+	TempFolder          string `toml:"tempfolder"`
+	BucketPrefix        string `toml:"bucket_prefix"`
+	DefaultDiskLimit    string `toml:"default_disk_limit"`
+	DefaultProfileImage string `toml:"default_profile_image"`
 }
 
 var config *Config

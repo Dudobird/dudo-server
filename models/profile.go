@@ -9,12 +9,14 @@ import (
 type Profile struct {
 	gorm.Model
 	UserID       string `json:"user_id"`
-	User         User
-	Name         string `json:"name" `
+	Name         string `json:"name" gorm:"unique_index:idx_profile_name"`
 	Phone        string `json:"phone"`
-	MobilePhone  string `json:"mobil_phone"`
+	MobilePhone  string `json:"mobile_phone"`
 	Department   string `json:"department"`
 	ProfileImage string `json:"profile_image"`
+
+	DiskLimit     uint64 `json:"disk_limit"`
+	UsageDiskSize uint64 `json:"usage_disk_size"`
 }
 
 // GetUserProfile return user profile struct

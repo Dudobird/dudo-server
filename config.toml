@@ -16,6 +16,10 @@ tempfolder = "temp"
 # bucket prefix
 bucket_prefix= "dudo"
 
+default_disk_limit="5GB"
+
+default_profile_image="/images/default.jpg"
+
 [Storage]
 server = "localhost"
 port = "9000"

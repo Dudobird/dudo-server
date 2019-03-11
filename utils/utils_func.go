@@ -3,18 +3,31 @@ package utils
 import (
 	"crypto/rand"
 	"fmt"
+	"math"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"unicode"
 )
 
 // const for storage caculation
 const (
-	KB = 1024
+	B  = 1
+	KB = B * 1024
 	MB = KB * 1024
 	GB = MB * 1024
 	TB = GB * 1024
 	PB = TB * 1024
 )
+
+var bytesSize = map[string]uint64{
+	"b":  B,
+	"kb": KB,
+	"mb": MB,
+	"gb": GB,
+	"tb": TB,
+	"pb": PB,
+}
 
 const (
 	idSource      = "0123456789qwertyuioasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM"
@@ -40,6 +53,35 @@ func GetReadableFileSize(size float64) string {
 	default:
 		return ""
 	}
+}
+
+// GetFileSizeFromReadable get file size from readable string
+// for example 1MB, return 1024*1024
+func GetFileSizeFromReadable(size string) uint64 {
+	size = strings.ToLower(size)
+	lastDigit := 0
+	for _, r := range size {
+		if !(unicode.IsDigit(r) || r == '.') {
+			break
+		}
+		lastDigit++
+	}
+	num := size[:lastDigit]
+	f, err := strconv.ParseFloat(num, 64)
+	if err != nil {
+		return 0
+	}
+
+	extra := strings.ToLower(strings.TrimSpace(size[lastDigit:]))
+	if m, ok := bytesSize[extra]; ok {
+		f = f * float64(m)
+		if f >= math.MaxUint64 {
+			return 0
+		}
+		return uint64(f)
+	}
+
+	return 0
 }
 
 // GenRandomID generate a random id with prefix

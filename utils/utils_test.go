@@ -4,6 +4,42 @@ import (
 	"testing"
 )
 
+func TestGetFileSizeFromReadable(t *testing.T) {
+	testCases := []struct {
+		expect uint64
+		input  string
+	}{
+		{
+			expect: 1024,
+			input:  "1KB",
+		},
+		{
+			expect: 2097152,
+			input:  "2.0MB",
+		},
+		{
+			expect: 30 * 1024 * 1024 * 1024,
+			input:  "30GB",
+		},
+		{
+			expect: 100 * 1024 * 1024 * 1024 * 1024,
+			input:  "100TB",
+		},
+		{
+			expect: 30 * 1024 * 1024 * 1024,
+			input:  "30.0GB",
+		},
+		{
+			expect: 0,
+			input:  "",
+		},
+	}
+
+	for _, tc := range testCases {
+		Equals(t, int(GetFileSizeFromReadable(tc.input)), int(tc.expect))
+	}
+}
+
 func TestGetReadableFileSize(t *testing.T) {
 	testCases := []struct {
 		input  float64

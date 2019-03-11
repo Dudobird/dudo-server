@@ -21,3 +21,5 @@ token = "thisisonlyfortest"
 tempfolder = "temp"
 # bucket prefix
 bucket_prefix= "dudotest"
+default_disk_limit="5GB"
+default_profile_image="/images/default.jpg"

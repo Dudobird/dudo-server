@@ -55,12 +55,14 @@ func LoadRouters() (router *mux.Router, err error) {
 
 	router.HandleFunc("/api/files/{id}", controllers.GetFileInfo).Methods("GET")
 	router.HandleFunc("/api/files/{id}", controllers.UpdateFileInfo).Methods("PUT")
-
 	// delete files
 	router.HandleFunc("/api/files/{id}", controllers.DeleteFiles).Methods("DELETE")
 	// for top level becouse no folder just set it to `root`
 	router.HandleFunc("/api/upload/files/{folderID}", controllers.UploadFiles).Methods("POST")
 	router.HandleFunc("/api/download/files/{id}", controllers.DownloadFiles).Methods("GET")
+
+	router.HandleFunc("/api/profile", controllers.GetProfile).Methods("GET")
+	router.HandleFunc("/api/profile", controllers.UpdateProfile).Methods("PUT")
 	router.NotFoundHandler = http.HandlerFunc(notFound)
 	log.Infoln("load api routers success")
 	return

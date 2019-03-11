@@ -29,13 +29,16 @@ type User struct {
 	CreatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
 	UpdatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
 	DeletedAt *time.Time
-	Email     string        `json:"email" gorm:"not null;type:varchar(100);unique_index"`
-	Password  string        `json:"password" gorm:"not null"`
-	Token     string        `json:"token" sql:"-"`
-	Files     []StorageFile `json:"-"`
+	Email     string `json:"email" gorm:"not null;type:varchar(100);unique_index"`
+	Password  string `json:"password" gorm:"not null"`
+	Token     string `json:"token" sql:"-"`
+	// some relation to other modals
+	Files   []StorageFile `json:"-"`
+	Profile Profile       `json:"-"`
 }
 
 // ToJSONBytes will format the accout information to json []byte
+// use only in test
 func (u *User) ToJSONBytes() []byte {
 	return []byte(fmt.Sprintf(`{"email":"%s","password":"%s"}`, u.Email, u.Password))
 }
@@ -107,9 +110,21 @@ func (u *User) Create() *utils.Message {
 	hashedPasswd, _ := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	u.Password = string(hashedPasswd)
 	u.ID = utils.GenRandomID("user", 12)
+	// set defaute for profile
+	u.Profile = Profile{
+		DiskLimit:     utils.GetFileSizeFromReadable(config.GetConfig().Application.DefaultDiskLimit),
+		ProfileImage:  config.GetConfig().Application.DefaultProfileImage,
+		UsageDiskSize: uint64(0),
+		Name:          u.ID,
+	}
 	err := GetDB().Create(u).Error
 	if err != nil {
-		log.Errorf("server create account fail for %s:%s", u.Email, err)
+		log.Errorf("server sql fail for %+v:%s", u, err)
+		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
+	}
+	err = GetDB().Save(u).Error
+	if err != nil {
+		log.Errorf("server save account fail for %+v:%s", u, err)
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
 	token, err := u.createToken()

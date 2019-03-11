@@ -8,10 +8,12 @@ import (
 
 var expectConfig = &Config{
 	Application: application{
-		ListenAt:     "127.0.0.1:8080",
-		Token:        "thisisonlyfortest",
-		TempFolder:   "temp",
-		BucketPrefix: "dudotest",
+		ListenAt:            "127.0.0.1:8080",
+		Token:               "thisisonlyfortest",
+		TempFolder:          "temp",
+		BucketPrefix:        "dudotest",
+		DefaultDiskLimit:    "5GB",
+		DefaultProfileImage: "/images/default.jpg",
 	},
 	Database: database{
 		Type:     "mysql",
