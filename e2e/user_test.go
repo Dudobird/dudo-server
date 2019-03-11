@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Dudobird/dudo-server/models"
+
 	"github.com/Dudobird/dudo-server/utils"
 )
 
@@ -181,13 +183,25 @@ func TestUpdatePassword(t *testing.T) {
 		},
 	}
 
-	for _, test := range testCases {
-		req, _ := http.NewRequest("UPDATE", "/api/auth/password", bytes.NewBuffer(test.postJSONString))
+	for _, tc := range testCases {
+		req, _ := http.NewRequest("POST", "/api/auth/password", bytes.NewBuffer(tc.postJSONString))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+testtoken)
 		rr := httptest.NewRecorder()
 		app.Router.ServeHTTP(rr, req)
-		utils.Equals(t, test.statuscode, rr.Code)
+		utils.Equals(t, tc.statuscode, rr.Code)
+		if tc.statuscode == http.StatusOK {
+			newUser := &models.User{
+				Email:    "test@example.com",
+				Password: "testpassword",
+			}
+			user := newUser.ToJSONBytes()
+			req, _ := http.NewRequest("POST", "/api/auth/signin", bytes.NewBuffer(user))
+			req.Header.Set("Content-Type", "application/json")
+			rr := httptest.NewRecorder()
+			app.Router.ServeHTTP(rr, req)
+			utils.Equals(t, http.StatusOK, rr.Code)
+		}
 	}
 	tearDownUser(app)
 }

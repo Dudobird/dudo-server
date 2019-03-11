@@ -48,7 +48,7 @@ func LoadRouters() (router *mux.Router, err error) {
 	router.HandleFunc("/api/auth/signup", controllers.CreateUser).Methods("POST")
 	router.HandleFunc("/api/auth/signin", controllers.Login).Methods("POST")
 	router.HandleFunc("/api/auth/logout", controllers.Logout).Methods("GET")
-	router.HandleFunc("/api/auth/password", controllers.UpdatePassword).Methods("UPDATE")
+	router.HandleFunc("/api/auth/password", controllers.UpdatePassword).Methods("POST")
 
 	router.HandleFunc("/api/folders", controllers.CreateFolder).Methods("POST")
 	router.HandleFunc("/api/folders/{id}", controllers.ListFolderFiles).Methods("GET")
