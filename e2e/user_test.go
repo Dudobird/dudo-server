@@ -198,6 +198,7 @@ func TestUpdatePassword(t *testing.T) {
 			user := newUser.ToJSONBytes()
 			req, _ := http.NewRequest("POST", "/api/auth/signin", bytes.NewBuffer(user))
 			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bearer "+testtoken)
 			rr := httptest.NewRecorder()
 			app.Router.ServeHTTP(rr, req)
 			utils.Equals(t, http.StatusOK, rr.Code)

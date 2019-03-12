@@ -113,3 +113,20 @@ func GetFileExtention(fileName string) string {
 	}
 	return "file"
 }
+
+// GetFilePathFolderList split path into many folders list
+// without filename
+func GetFilePathFolderList(path string) []string {
+	folders := []string{}
+	for {
+		dir := filepath.Dir(path)
+		parent := filepath.Base(dir)
+
+		if parent == string(filepath.Separator) || dir == "." {
+			break
+		}
+		path = dir
+		folders = append([]string{parent}, folders...)
+	}
+	return folders
+}

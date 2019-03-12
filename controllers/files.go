@@ -12,6 +12,7 @@ import (
 
 	"github.com/Dudobird/dudo-server/auth"
 	"github.com/Dudobird/dudo-server/models"
+	"github.com/Dudobird/dudo-server/store"
 	"github.com/gorilla/mux"
 
 	"github.com/Dudobird/dudo-server/core"
@@ -26,27 +27,15 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.TokenContextKey).(string)
 	vars := mux.Vars(r)
 	folderID := vars["folderID"]
-	// folderID is root for upload to top level of folders
-	if folderID != "root" {
-		// search id exist or not
-		var exist int
-		err := models.GetDB().Model(models.StorageFile{}).Where("id = ?", folderID).Count(&exist).Error
-		if err != nil {
-			utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
-			return
-		}
-		if exist == 0 {
-			utils.JSONRespnseWithErr(w, &utils.ErrResourceNotFound)
-			return
-		}
-	}
-	app := core.GetApp()
-	if app == nil {
-		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
+	filePath := r.Header.Get("X-FilePath")
+	store := store.NewStore(userID)
+	folderID, err := store.GetOrCreateFolder(folderID, filePath)
+	if err != nil {
+		utils.JSONRespnseWithErr(w, err.(*utils.CustomError))
 		return
 	}
+	app := core.GetApp()
 
-	// 64 Mb in minio it will upload in one file and not split to many trunk
 	r.ParseMultipartForm(64 << 20)
 	file, handler, err := r.FormFile("uploadfile")
 	if err != nil {
@@ -64,9 +53,9 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	// https://golang.org/pkg/net/http/#DetectContentType
 	mimeType := http.DetectContentType(buff)
 	defer file.Close()
-	existCheckStorage := &models.StorageFile{}
-	notFoundChecker := models.GetDB().Where(&models.StorageFile{RawStorageFileInfo: models.RawStorageFileInfo{FolderID: folderID, FileName: handler.Filename}}).First(&existCheckStorage).RecordNotFound()
-	if notFoundChecker == false {
+
+	exist := store.StorageFileExistCheck(folderID, handler.Filename)
+	if exist == true {
 		utils.JSONRespnseWithErr(w, &utils.ErrResourceAlreadyExist)
 		return
 	}
@@ -80,7 +69,6 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		app.Config.Application.BucketPrefix,
 		strings.ToLower(strings.TrimLeft(userID, "user_")),
 	)
-
 	fileName := fmt.Sprintf("%s_%s", id, handler.Filename)
 	tempFileName := app.FullTempFolder + string(filepath.Separator) + fileName
 	f, err := os.OpenFile(tempFileName, os.O_WRONLY|os.O_CREATE, 0666)

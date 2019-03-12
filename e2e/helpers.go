@@ -3,6 +3,7 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -243,7 +244,7 @@ func setUpRealFiles(token string) (map[string]models.StorageFile, map[string]mod
 		},
 	}
 	for _, tc := range realfiles {
-		rr, err := fileUploadRequest(tc.url, tc.formDataName, tc.filePath, tc.token)
+		rr, err := fileUploadRequest(tc.url, tc.formDataName, tc.filePath, tc.token, "")
 		if err != nil {
 			log.Panic(err)
 		}
@@ -266,8 +267,8 @@ func setUpRealFiles(token string) (map[string]models.StorageFile, map[string]mod
 	return folders, files
 }
 
-func fileUploadRequest(url, paramName, path, token string) (*httptest.ResponseRecorder, error) {
-	file, err := os.Open(path)
+func fileUploadRequest(url, paramName, localPath, token, filePath string) (*httptest.ResponseRecorder, error) {
+	file, err := os.Open(localPath)
 	if err != nil {
 		return nil, err
 	}
@@ -297,6 +298,7 @@ func fileUploadRequest(url, paramName, path, token string) (*httptest.ResponseRe
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
+	req.Header.Add("X-FilePath", base64.StdEncoding.EncodeToString([]byte(filePath)))
 	rr := httptest.NewRecorder()
 	// handler := http.HandlerFunc(controllers.UploadFiles)
 	ctx := req.Context()

@@ -3,7 +3,6 @@ package e2e
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -111,7 +110,6 @@ func TestUpdateUserProfile(t *testing.T) {
 			if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
 				utils.OK(t, err)
 			}
-			log.Printf("%+v", message.Data)
 			utils.Equals(t, message.Status, rr.Code)
 			utils.Assert(t, message.Data.UserID == user.Data.ID, "user id is not same")
 			utils.Assert(t, message.Data.UsageDiskSize == uint64(0), "init disk usage is not zero")

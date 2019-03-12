@@ -21,7 +21,7 @@ func TestUploadFiles(t *testing.T) {
 	testCases := []struct {
 		url          string
 		formDataName string
-		filePath     string
+		localPath    string
 		folderID     string
 		token        string
 		statusCode   int
@@ -29,29 +29,78 @@ func TestUploadFiles(t *testing.T) {
 		{
 			url:          "/api/upload/files/notexist",
 			formDataName: "uploadfile",
-			filePath:     "./files/1.file",
+			localPath:    "./files/1.file",
 			token:        token,
 			statusCode:   404,
 		},
 		{
 			url:          "/api/upload/files/root",
 			formDataName: "notcorrect",
-			filePath:     "./files/1.file",
+			localPath:    "./files/1.file",
 			token:        token,
 			statusCode:   400,
 		},
 		{
 			url:          "/api/upload/files/root",
 			formDataName: "uploadfile",
-			filePath:     "./files/1.file",
+			localPath:    "./files/1.file",
 			token:        token,
 			statusCode:   201,
 		},
 	}
 	for _, tc := range testCases {
-		rr, _ := fileUploadRequest(tc.url, tc.formDataName, tc.filePath, tc.token)
+		rr, _ := fileUploadRequest(tc.url, tc.formDataName, tc.localPath, tc.token, "")
 		utils.Equals(t, tc.statusCode, rr.Code)
 	}
+	tearDownUser(app)
+	tearDownStorages()
+}
+
+func TestUploadFilesWithFoldersPath(t *testing.T) {
+	app := GetTestApp()
+	userResponse, _ := signUpTestUser(app)
+	token := userResponse.Data.Token
+	testCases := []struct {
+		url          string
+		formDataName string
+		localPath    string
+		filePath     string
+		folderID     string
+		token        string
+		statusCode   int
+	}{
+		{
+			url:          "/api/upload/files/root",
+			formDataName: "uploadfile",
+			localPath:    "./files/1.file",
+			token:        token,
+			filePath:     "/a/b/c/d/e/1.file",
+			statusCode:   201,
+		},
+		{
+			url:          "/api/upload/files/root",
+			formDataName: "uploadfile",
+			localPath:    "./files/1.file",
+			filePath:     "/a/b/c/d/1.file",
+			token:        token,
+			statusCode:   201,
+		},
+	}
+	for _, tc := range testCases {
+		rr, _ := fileUploadRequest(tc.url, tc.formDataName, tc.localPath, tc.token, tc.filePath)
+		utils.Equals(t, tc.statusCode, rr.Code)
+
+	}
+	parentID := "root"
+	for _, folder := range []string{"a", "b", "c", "d"} {
+		s := &models.StorageFile{}
+		models.GetDB().Model(&models.StorageFile{}).Where("file_name = ? and user_id = ?", folder, userResponse.Data.ID).First(&s)
+		utils.Equals(t, parentID, s.RawStorageFileInfo.FolderID)
+		parentID = s.RawStorageFileInfo.ID
+	}
+	var counter int
+	models.GetDB().Model(&models.StorageFile{}).Where("file_name = ? and user_id = ?", "1.file", userResponse.Data.ID).Count(&counter)
+	utils.Equals(t, 2, counter)
 	tearDownUser(app)
 	tearDownStorages()
 }

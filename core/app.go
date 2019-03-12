@@ -51,7 +51,7 @@ func (app *App) Run() {
 	c := cors.New(cors.Options{
 		AllowCredentials: true,
 		AllowedMethods:   []string{"GET", "POST", "DELETE", "PUT"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-FilePath"},
 	})
 	err := http.ListenAndServe(hostAndPort, c.Handler(app.Router))
 	if err != nil {

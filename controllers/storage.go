@@ -108,7 +108,7 @@ func ListFolderFiles(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// DeleteFiles delete current file and all reference files
+// DeleteFiles delete current file or folder( all reference files)
 func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
@@ -144,7 +144,6 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 		}
 		messages = append(messages, fmt.Sprintf("%s:success", file.FileName))
 	}
-
 	utils.JSONMessageWithData(w, 200, "", messages)
 	return
 }

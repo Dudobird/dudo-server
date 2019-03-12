@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/jinzhu/gorm"
-
 	"github.com/Dudobird/dudo-server/utils"
+	"github.com/jinzhu/gorm"
+	log "github.com/sirupsen/logrus"
 )
 
 // StorageFile for store user files
@@ -171,28 +171,36 @@ func (swu *StorageFilesWithUser) ListChildren(folderID string) ([]StorageFile, *
 
 // DeleteFilesFromID delete files based on its id and delete all subfiles
 // return the files infomation to delete in storage
-func (swu *StorageFilesWithUser) DeleteFilesFromID(id string) ([]StorageFile, *utils.CustomError) {
+func (swu *StorageFilesWithUser) DeleteFilesFromID(parentID string) ([]StorageFile, *utils.CustomError) {
 	pendingDeleteFiles := []StorageFile{}
-	err := GetDB().Where("id=?", id).Or("folder_id=?", id).Find(&pendingDeleteFiles).Error
+	deleteFiles := []StorageFile{}
+	err := GetDB().Where("id=?", parentID).Or("folder_id=?", parentID).Find(&pendingDeleteFiles).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pendingDeleteFiles, &utils.ErrResourceNotFound
+			return pendingDeleteFiles, nil
 		}
 		return pendingDeleteFiles, &utils.ErrInternalServerError
 	}
 	// delete in database
 	// make sure all file belone to this user
-	for i, f := range pendingDeleteFiles {
+	for _, f := range pendingDeleteFiles {
 		if f.UserID != swu.Owner.ID {
 			continue
 		}
-		// if it's file then send to storage manager to delete
-		// if is directory then skip only delete in database
-		if f.RawStorageFileInfo.IsDir == true {
-			pendingDeleteFiles = append(pendingDeleteFiles[:i], pendingDeleteFiles[i+1:]...)
+		if f.IsDir == false {
+			deleteFiles = append(deleteFiles, f)
+		}
+		if f.ID != parentID {
+			// subfolder
+			files, err := swu.DeleteFilesFromID(f.ID)
+			if err != nil {
+				log.Errorf("delete files fail: %s", err)
+			} else {
+				deleteFiles = append(deleteFiles, files...)
+			}
 		}
 		// delete direct only in database
 		GetDB().Unscoped().Delete(f)
 	}
-	return pendingDeleteFiles, nil
+	return deleteFiles, nil
 }

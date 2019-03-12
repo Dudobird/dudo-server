@@ -34,7 +34,7 @@ func InitDBConnection() (*gorm.DB, error) {
 	log.Infof("try to connect database : %s:%s", dbHost, dbPort)
 	db, err = gorm.Open("mysql", dbURI)
 	if err != nil {
-		log.Errorln(err)
+		log.Errorf("connect database error:%s", err)
 		return nil, err
 	}
 	log.Infoln("connect database success")
@@ -46,5 +46,12 @@ func InitDBConnection() (*gorm.DB, error) {
 
 // GetDB will return a local db variable which init before
 func GetDB() *gorm.DB {
+	if db == nil {
+		db, err := InitDBConnection()
+		if err != nil {
+			panic(err)
+		}
+		return db
+	}
 	return db
 }

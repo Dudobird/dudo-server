@@ -109,13 +109,45 @@ func TestGenRandomID(t *testing.T) {
 	}
 }
 
+func TestGetFilePathFolders(t *testing.T) {
+	testCases := []struct {
+		filePath string
+		expect   []string
+	}{
+		{
+			filePath: "/a/b/c/dd/d/1.txt",
+			expect:   []string{"a", "b", "c", "dd", "d"},
+		},
+		{
+			filePath: "1.txt",
+			expect:   []string{},
+		},
+		{
+			filePath: "",
+			expect:   []string{},
+		},
+		{
+			filePath: "/a/b/1.txt",
+			expect:   []string{"a", "b"},
+		},
+		{
+			filePath: "1.txt",
+			expect:   []string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		Equals(t, tc.expect, GetFilePathFolderList(tc.filePath))
+	}
+}
+
 func TestGetFileExtention(t *testing.T) {
 	testCases := []struct {
 		fileName string
 		expect   string
 	}{
 		{
-			fileName: " abc.doc ",
+			fileName: "1.doc ",
 			expect:   "doc",
 		},
 		{

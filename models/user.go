@@ -196,7 +196,7 @@ func UpdatePassword(userID string, password, newPassword string) *utils.Message 
 	}
 
 	account := &User{}
-	err := GetDB().Table("users").Where("id = ?", userID).First(account).Error
+	err := GetDB().Model(&User{}).Where("id = ?", userID).First(account).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return utils.NewMessage(http.StatusNotFound, "user not found")
@@ -211,6 +211,11 @@ func UpdatePassword(userID string, password, newPassword string) *utils.Message 
 	}
 	hashedPasswd, _ := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	account.Password = string(hashedPasswd)
+	err = GetDB().Save(account).Error
+	if err != nil {
+		log.Errorf("update password fail: %v", err)
+		return utils.NewMessage(http.StatusInternalServerError, "server unavailable")
+	}
 	return utils.NewMessage(http.StatusOK, "update password success")
 }
 
