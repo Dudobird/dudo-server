@@ -2,6 +2,7 @@ package store
 
 import (
 	"encoding/base64"
+	"path/filepath"
 
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/utils"
@@ -82,7 +83,6 @@ func (store *Store) createFoldersUnderParentID(parentID string, folders []string
 				return "", &utils.ErrResourceAlreadyExist
 			}
 			if err == nil && s.IsDir == true {
-				log.Infof("get folder :%v", s.ID)
 				parent = s.ID
 				continue
 			}
@@ -125,4 +125,39 @@ func (store *Store) StorageFileExistCheck(folderID, fileName string) bool {
 		return true
 	}
 	return false
+}
+
+// GetAllFiles query all files and return a map info for store the path info and file into
+func (store *Store) GetAllFiles(parentID string, parentName string) (map[string][]models.StorageFile, error) {
+	queryFiles := []models.StorageFile{}
+	files := make(map[string][]models.StorageFile)
+	currentFolder := string(filepath.Separator) + parentName
+	err := store.DB.Model(&models.StorageFile{}).Where(
+		"user_id = ? and folder_id = ?",
+		store.userID,
+		parentID,
+	).Find(&queryFiles).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return files, nil
+		}
+	}
+	// bug is here
+	for _, f := range queryFiles {
+		if f.IsDir == false {
+			files[currentFolder] = append(files[currentFolder], f)
+			continue
+		}
+		info, err := store.GetAllFiles(f.ID, currentFolder+string(filepath.Separator)+f.FileName)
+		if err != nil {
+			log.Errorf("download folder error:%s", err)
+			continue
+		}
+		log.Infof("%+v", info)
+		for k, v := range info {
+			files[k] = v
+		}
+	}
+
+	return files, nil
 }

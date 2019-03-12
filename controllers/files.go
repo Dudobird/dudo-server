@@ -131,13 +131,24 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 		return
 	}
-	// Right now only allow for download file
-	if fileMeta.IsDir == true {
-		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
-		return
-	}
+
 	tempDownloadFilePath := app.FullTempFolder + string(filepath.Separator) + fileMeta.FileName
 	storeFileName := fileMeta.ID + "_" + fileMeta.FileName
+	// Right now only allow for download file
+	if fileMeta.IsDir == true {
+		// zip folder
+		// app.Storage.DownloadFolders(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
+		store := store.NewStore(userID)
+		files, err := store.GetAllFiles(fileMeta.ID, "")
+		if err != nil {
+			log.Errorf("download folder error: %s", err)
+			utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
+			return
+		}
+		utils.JSONMessageWithData(w, 200, "", files)
+		return
+	}
+
 	err = app.Storage.Download(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
 	if err != nil {
 		log.Errorf("down load file from storage err: %s", err)
