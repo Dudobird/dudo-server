@@ -2,7 +2,11 @@ package storage
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 
+	"github.com/Dudobird/dudo-server/models"
+	"github.com/Dudobird/dudo-server/utils"
 	minio "github.com/minio/minio-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -122,4 +126,37 @@ func (m *MinioManager) RemoveBucket(bucketName string, force bool) error {
 		m.CleanBucket(bucketName)
 	}
 	return m.Handler.RemoveBucket(bucketName)
+}
+
+// DownloadFolder will download all files based on files
+func (m *MinioManager) DownloadFolder(tempFolderPath, folderName string, files map[string][]models.StorageFile) (string, []error) {
+	errors := []error{}
+	folderPath := filepath.Join(tempFolderPath, folderName)
+	zipFilePath := folderPath + ".zip"
+	filePathList := []string{}
+	for path, fileList := range files {
+		for _, file := range fileList {
+			filePath := filepath.Join(tempFolderPath, path, file.FileName)
+			if file.IsDir == true {
+				// create folder
+				os.MkdirAll(filePath, os.ModePerm)
+				continue
+			}
+			err := m.Download(filePath, file.ID+"_"+file.FileName, file.Bucket)
+			if err != nil {
+				log.Errorf("download file %s error: %s", file.FileName, err)
+				errors = append(errors, err)
+			}
+			filePathList = append(filePathList, filePath)
+		}
+	}
+	if len(errors) > 0 {
+		return zipFilePath, errors
+	}
+	// compress file
+	err := utils.ZipFiles(zipFilePath, filePathList, tempFolderPath)
+	if err != nil {
+		return "", append(errors, err)
+	}
+	return zipFilePath, nil
 }

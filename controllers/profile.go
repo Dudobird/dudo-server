@@ -33,7 +33,6 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	profile := &models.Profile{}
 	err := models.GetDB().Model(&models.Profile{}).Where("user_id = ?", user).First(profile).Error
 	if err != nil {
-		log.Info(err)
 		if err == gorm.ErrRecordNotFound {
 			utils.JSONRespnseWithErr(w, &utils.ErrUserNotFound)
 			return

@@ -131,7 +131,7 @@ func (store *Store) StorageFileExistCheck(folderID, fileName string) bool {
 func (store *Store) GetAllFiles(parentID string, parentName string) (map[string][]models.StorageFile, error) {
 	queryFiles := []models.StorageFile{}
 	files := make(map[string][]models.StorageFile)
-	currentFolder := string(filepath.Separator) + parentName
+	currentFolder := parentName
 	err := store.DB.Model(&models.StorageFile{}).Where(
 		"user_id = ? and folder_id = ?",
 		store.userID,
@@ -144,16 +144,15 @@ func (store *Store) GetAllFiles(parentID string, parentName string) (map[string]
 	}
 	// bug is here
 	for _, f := range queryFiles {
+		files[currentFolder] = append(files[currentFolder], f)
 		if f.IsDir == false {
-			files[currentFolder] = append(files[currentFolder], f)
 			continue
 		}
-		info, err := store.GetAllFiles(f.ID, currentFolder+string(filepath.Separator)+f.FileName)
+		info, err := store.GetAllFiles(f.ID, filepath.Join(currentFolder, f.FileName))
 		if err != nil {
 			log.Errorf("download folder error:%s", err)
 			continue
 		}
-		log.Infof("%+v", info)
 		for k, v := range info {
 			files[k] = v
 		}

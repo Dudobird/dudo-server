@@ -112,6 +112,8 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 
 // DownloadFiles will down load files from storages
 func DownloadFiles(w http.ResponseWriter, r *http.Request) {
+	downloadFilePath := ""
+	downloadFileName := ""
 	userID := r.Context().Value(auth.TokenContextKey).(string)
 	vars := mux.Vars(r)
 	id := vars["id"]
@@ -139,26 +141,48 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 		// zip folder
 		// app.Storage.DownloadFolders(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
 		store := store.NewStore(userID)
-		files, err := store.GetAllFiles(fileMeta.ID, "")
+		files, err := store.GetAllFiles(fileMeta.ID, string(filepath.Separator)+fileMeta.FileName)
 		if err != nil {
 			log.Errorf("download folder error: %s", err)
 			utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 			return
 		}
-		utils.JSONMessageWithData(w, 200, "", files)
-		return
+		// download files with those infomathion
+		randomString := utils.GenRandomID("download", 5)
+		downloadFolderPath := filepath.Join(app.FullTempFolder, randomString)
+		zipFolderPath, errors := app.Storage.DownloadFolder(downloadFolderPath, fileMeta.FileName, files)
+		if len(errors) > 0 {
+			log.Errorf("download folders got some errors : %+v", errors)
+		}
+		defer func() {
+			err := os.RemoveAll(downloadFolderPath)
+			if err != nil {
+				log.Errorf("delete folder %s fail: %s", downloadFolderPath, err)
+			}
+		}()
+		downloadFilePath = zipFolderPath
+		downloadFileName = filepath.Base(zipFolderPath)
+	} else {
+		err = app.Storage.Download(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
+		if err != nil {
+			log.Errorf("down load file from storage err: %s", err)
+			log.Errorf("filename = %s, bucket = %s", storeFileName, fileMeta.Bucket)
+			utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
+			return
+		}
+		defer func() {
+			err := os.Remove(tempDownloadFilePath)
+			if err != nil {
+				log.Errorf("delete file %s fail: %s", tempDownloadFilePath, err)
+			}
+		}()
+		downloadFilePath = tempDownloadFilePath
+		downloadFileName = fileMeta.FileName
 	}
 
-	err = app.Storage.Download(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
-	if err != nil {
-		log.Errorf("down load file from storage err: %s", err)
-		log.Errorf("filename = %s, bucket = %s", storeFileName, fileMeta.Bucket)
-		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+fileMeta.FileName+"\"")
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+downloadFileName+"\"")
 	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-	f, err := os.Open(tempDownloadFilePath)
+	f, err := os.Open(downloadFilePath)
 	if err != nil {
 		log.Errorf("open temp file err: %s", err)
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
@@ -166,7 +190,6 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() {
 		f.Close()
-		os.Remove(tempDownloadFilePath)
 	}()
 	io.Copy(w, f)
 	return

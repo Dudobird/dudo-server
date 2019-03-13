@@ -88,7 +88,6 @@ func (app *App) init(configFile string) (err error) {
 		if err != nil {
 			return
 		}
-		log.Infof("create temp file in location: %s", fullTempPath)
 	}
 	app.FullTempFolder = fullTempPath
 	return

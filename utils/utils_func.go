@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"archive/zip"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"math"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -129,4 +132,63 @@ func GetFilePathFolderList(path string) []string {
 		folders = append([]string{parent}, folders...)
 	}
 	return folders
+}
+
+// ZipFiles compresses one or many files into a single zip archive file.
+// filename is the output zip file's name.
+// files is a list of files to add to the zip.
+func ZipFiles(filename string, files []string, topFolderPath string) error {
+
+	newZipFile, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer newZipFile.Close()
+
+	zipWriter := zip.NewWriter(newZipFile)
+	defer zipWriter.Close()
+
+	// Add files to zip
+	for _, file := range files {
+		if err = addFileToZip(zipWriter, file, topFolderPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addFileToZip(zipWriter *zip.Writer, filename string, topFolderPath string) error {
+
+	fileToZip, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer fileToZip.Close()
+
+	// Get the file information
+	info, err := fileToZip.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+
+	// Using FileInfoHeader() above only uses the basename of the file. If we want
+	// to preserve the folder structure we can overwrite this with the full path.
+	// add relative path
+	header.Name, _ = filepath.Rel(topFolderPath, filename)
+
+	// Change to deflate to gain better compression
+	// see http://golang.org/pkg/archive/zip/#pkg-constants
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(writer, fileToZip)
+	return err
 }

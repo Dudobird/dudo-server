@@ -1,5 +1,9 @@
 package storage
 
+import (
+	"github.com/Dudobird/dudo-server/models"
+)
+
 // Storage is a interface for upload and get files
 // it could be local storage or object storage like s3
 type Storage interface {
@@ -10,6 +14,9 @@ type Storage interface {
 	// Download file from storage
 	// filePath is the temp file path for download from storage
 	Download(filePath, fileName, bucket string) error
+
+	// download folder as a zip file
+	DownloadFolder(tempFolderPath, folderName string, files map[string][]models.StorageFile) (string, []error)
 
 	// Delete file from storage
 	Delete(fileName, bucket string) error
