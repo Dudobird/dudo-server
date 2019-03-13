@@ -7,9 +7,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-//ContextToken for context key type
-type ContextToken string
-
 // Message response json data
 type Message struct {
 	Status  int         `json:"status"`

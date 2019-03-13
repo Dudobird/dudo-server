@@ -10,7 +10,6 @@ import (
 
 	"github.com/jinzhu/gorm"
 
-	"github.com/Dudobird/dudo-server/auth"
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/store"
 	"github.com/gorilla/mux"
@@ -24,11 +23,11 @@ import (
 // UploadFiles receive user upload file
 // save it to temp folder and wait for upload to storage
 func UploadFiles(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(auth.TokenContextKey).(string)
+	userID := r.Context().Value(utils.TokenContextKey).(string)
 	vars := mux.Vars(r)
 	folderID := vars["folderID"]
 	filePath := r.Header.Get("X-FilePath")
-	store := store.NewStore(userID)
+	store := store.NewFileStore(userID)
 	folderID, err := store.GetOrCreateFolder(folderID, filePath)
 	if err != nil {
 		utils.JSONRespnseWithErr(w, err.(*utils.CustomError))
@@ -105,7 +104,12 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 			Path:     path,
 		},
 	}
-	app.DB.Save(&s)
+	// Save storage meta data and update user disk usage
+	err = store.SaveStorage(&s)
+	if err != nil {
+		utils.JSONMessageWithData(w, 500, "", &utils.ErrInternalServerError)
+		return
+	}
 	utils.JSONMessageWithData(w, 201, "", id)
 	return
 }
@@ -114,7 +118,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 	downloadFilePath := ""
 	downloadFileName := ""
-	userID := r.Context().Value(auth.TokenContextKey).(string)
+	userID := r.Context().Value(utils.TokenContextKey).(string)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	app := core.GetApp()
@@ -140,7 +144,7 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 	if fileMeta.IsDir == true {
 		// zip folder
 		// app.Storage.DownloadFolders(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
-		store := store.NewStore(userID)
+		store := store.NewFileStore(userID)
 		files, err := store.GetAllFiles(fileMeta.ID, string(filepath.Separator)+fileMeta.FileName)
 		if err != nil {
 			log.Errorf("download folder error: %s", err)

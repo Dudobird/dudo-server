@@ -156,7 +156,7 @@ func TestDownloadFilesWithID(t *testing.T) {
 		{
 			fileName:   "files",
 			id:         folders["files"].ID,
-			statusCode: 400,
+			statusCode: 200,
 			token:      token,
 			savePath:   "tmp-fils.zip",
 		},

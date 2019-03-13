@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Dudobird/dudo-server/auth"
-
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/utils"
 )
@@ -40,7 +38,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 // if user token not correct, send 401 unauthorization
 // else send 200 logout success
 func Logout(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(auth.TokenContextKey).(string)
+	user := r.Context().Value(utils.TokenContextKey).(string)
 	message := models.Logout(user)
 	utils.JSONResonseWithMessage(w, message)
 }
@@ -57,7 +55,7 @@ type receivePasswordInfo struct {
 // else if old password is correct but new password validate fail it will send 400
 // else send 200 update success
 func UpdatePassword(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(auth.TokenContextKey).(string)
+	userID := r.Context().Value(utils.TokenContextKey).(string)
 	tempAccout := &receivePasswordInfo{}
 	err := json.NewDecoder(r.Body).Decode(tempAccout)
 	if err != nil {

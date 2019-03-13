@@ -16,15 +16,15 @@ type StorageHandler interface {
 	GetOrCreateFolder(parent, path string, override bool) (string, error)
 }
 
-// Store with a db handler
-type Store struct {
+// FileStore with a db handler
+type FileStore struct {
 	DB     *gorm.DB
 	userID string
 }
 
-//NewStore return a Store instance
-func NewStore(userID string) *Store {
-	return &Store{
+//NewFileStore return a FileStore instance
+func NewFileStore(userID string) *FileStore {
+	return &FileStore{
 		DB:     models.GetDB(),
 		userID: userID,
 	}
@@ -33,7 +33,7 @@ func NewStore(userID string) *Store {
 // GetOrCreateFolder implement StorageHandler interface
 // return the folder id of parent and path combination
 // if path not exist create it and return id
-func (store *Store) GetOrCreateFolder(parent, path string) (string, error) {
+func (store *FileStore) GetOrCreateFolder(parent, path string) (string, error) {
 	// split path to slice
 	pathDecodeBase64, err := base64.StdEncoding.DecodeString(path)
 	if err != nil {
@@ -59,7 +59,7 @@ func (store *Store) GetOrCreateFolder(parent, path string) (string, error) {
 	return folderID, err
 }
 
-func (store *Store) createFoldersUnderParentID(parentID string, folders []string) (string, error) {
+func (store *FileStore) createFoldersUnderParentID(parentID string, folders []string) (string, error) {
 	var parent = parentID
 	var currentFolderID string
 	var err error
@@ -110,7 +110,7 @@ func (store *Store) createFoldersUnderParentID(parentID string, folders []string
 }
 
 // StorageFileExistCheck  return true when file exist or false if not exist
-func (store *Store) StorageFileExistCheck(folderID, fileName string) bool {
+func (store *FileStore) StorageFileExistCheck(folderID, fileName string) bool {
 	existCheckStorage := &models.StorageFile{}
 	notFoundChecker := models.GetDB().Where(
 		&models.StorageFile{
@@ -127,8 +127,59 @@ func (store *Store) StorageFileExistCheck(folderID, fileName string) bool {
 	return false
 }
 
+// SaveStorage save the data and update profile usage size
+func (store *FileStore) SaveStorage(storage *models.StorageFile) error {
+	err := store.DB.Save(storage).Error
+	if err != nil {
+		log.Errorf("save file error: %s", err)
+		return err
+	}
+	profile := models.Profile{UserID: storage.UserID}
+	err = store.DB.Model(&profile).UpdateColumn("usage_disk_size", gorm.Expr("usage_disk_size + ?", storage.FileSize)).Error
+	if err != nil {
+		log.Errorf("update user profile disk usage fail:%s", err)
+		return err
+	}
+	return nil
+}
+
+// DeleteFolders delete folder and update the disk usage
+func (store *FileStore) DeleteFolders(parentID string) ([]models.StorageFile, error) {
+	pendingDeleteFiles := []models.StorageFile{}
+	deleteFiles := []models.StorageFile{}
+	err := store.DB.Where("id=?", parentID).Or("folder_id=?", parentID).Find(&pendingDeleteFiles).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pendingDeleteFiles, nil
+		}
+		return pendingDeleteFiles, err
+	}
+	// delete in database
+	// make sure all file belone to this user
+	for _, f := range pendingDeleteFiles {
+		if f.UserID != store.userID {
+			continue
+		}
+		if f.IsDir == false {
+			deleteFiles = append(deleteFiles, f)
+		}
+		if f.ID != parentID {
+			// subfolder
+			files, err := store.DeleteFolders(f.ID)
+			if err != nil {
+				log.Errorf("delete files fail: %s", err)
+			} else {
+				deleteFiles = append(deleteFiles, files...)
+			}
+		}
+		// delete direct only in database
+		store.DB.Unscoped().Delete(f)
+	}
+	return deleteFiles, nil
+}
+
 // GetAllFiles query all files and return a map info for store the path info and file into
-func (store *Store) GetAllFiles(parentID string, parentName string) (map[string][]models.StorageFile, error) {
+func (store *FileStore) GetAllFiles(parentID string, parentName string) (map[string][]models.StorageFile, error) {
 	queryFiles := []models.StorageFile{}
 	files := make(map[string][]models.StorageFile)
 	currentFolder := parentName

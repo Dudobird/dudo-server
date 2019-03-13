@@ -96,7 +96,6 @@ func (u *User) createToken() (string, error) {
 		},
 	)
 	return token.SignedString([]byte(tokenSecret))
-
 }
 
 // Create will valid user infomation and create it

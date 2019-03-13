@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Dudobird/dudo-server/auth"
+	"github.com/Dudobird/dudo-server/store"
+
 	"github.com/Dudobird/dudo-server/core"
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/utils"
@@ -15,7 +16,7 @@ import (
 
 // CreateFolder create a folder from post data
 func CreateFolder(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(auth.TokenContextKey).(string)
+	userID := r.Context().Value(utils.TokenContextKey).(string)
 	_, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, errWithCode)
@@ -40,7 +41,7 @@ func CreateFolder(w http.ResponseWriter, r *http.Request) {
 func UpdateFileInfo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	userID := r.Context().Value(auth.TokenContextKey).(string)
+	userID := r.Context().Value(utils.TokenContextKey).(string)
 	sf := &models.StorageFile{
 		RawStorageFileInfo: models.RawStorageFileInfo{
 			ID: id,
@@ -68,7 +69,7 @@ func UpdateFileInfo(w http.ResponseWriter, r *http.Request) {
 func GetFileInfo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	userID := r.Context().Value(auth.TokenContextKey).(string)
+	userID := r.Context().Value(utils.TokenContextKey).(string)
 	user, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, errWithCode)
@@ -90,7 +91,7 @@ func GetFileInfo(w http.ResponseWriter, r *http.Request) {
 func ListFolderFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	userID := r.Context().Value(auth.TokenContextKey).(string)
+	userID := r.Context().Value(utils.TokenContextKey).(string)
 	user, errWithCode := models.GetUser(userID)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, errWithCode)
@@ -117,18 +118,13 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 		return
 	}
-	userID := r.Context().Value(auth.TokenContextKey).(string)
-	user, errWithCode := models.GetUser(userID)
-	if errWithCode != nil {
-		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
-		return
-	}
-	swu := models.StorageFilesWithUser{
-		Owner: user,
-	}
-	files, errWithCode := swu.DeleteFilesFromID(id)
-	if errWithCode != nil {
-		log.Error(errWithCode.Error())
+	userID := r.Context().Value(utils.TokenContextKey).(string)
+
+	fileStore := store.NewFileStore(userID)
+	// get files for storage delete
+	files, err := fileStore.DeleteFolders(id)
+	if err != nil {
+		log.Errorf("delete folders fail : %s", err)
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}

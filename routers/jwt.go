@@ -1,4 +1,4 @@
-package auth
+package routers
 
 import (
 	"context"
@@ -18,12 +18,9 @@ var (
 	}
 )
 
-// TokenContextKey a simple wrapper for ContextToken
-const TokenContextKey = utils.ContextToken("MyAppToken")
-
-// JWTAuthentication is a middleware for all request
+// jwtAuthenticationMiddleware is a middleware for all request
 // it will stop the request when jwt authencticate is fail
-func JWTAuthentication(next http.Handler) http.Handler {
+func jwtAuthenticationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		config := config.GetConfig()
 		tokenSecrect := config.Application.Token
@@ -60,7 +57,7 @@ func JWTAuthentication(next http.Handler) http.Handler {
 			utils.JSONRespnseWithTextMessage(w, http.StatusUnauthorized, "token valid fail")
 			return
 		}
-		ctx := context.WithValue(r.Context(), TokenContextKey, userToken.UserID)
+		ctx := context.WithValue(r.Context(), utils.TokenContextKey, userToken.UserID)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})

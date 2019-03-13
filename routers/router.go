@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
-	"github.com/Dudobird/dudo-server/auth"
 	"github.com/Dudobird/dudo-server/controllers"
 	"github.com/Dudobird/dudo-server/core"
 	"github.com/Dudobird/dudo-server/utils"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,7 +41,7 @@ func LoadRouters() (router *mux.Router, err error) {
 		}
 	}()
 	router = mux.NewRouter()
-	router.Use(auth.JWTAuthentication)
+	router.Use(jwtAuthenticationMiddleware)
 	router.Use(appBindMiddleware)
 	router.HandleFunc("/api/auth/signup", controllers.CreateUser).Methods("POST")
 	router.HandleFunc("/api/auth/signin", controllers.Login).Methods("POST")
@@ -63,6 +61,10 @@ func LoadRouters() (router *mux.Router, err error) {
 
 	router.HandleFunc("/api/profile", controllers.GetProfile).Methods("GET")
 	router.HandleFunc("/api/profile", controllers.UpdateProfile).Methods("PUT")
+
+	router.HandleFunc("/api/shares", controllers.CreateShareFile).Methods("POST")
+	router.HandleFunc("/api/shares", controllers.GetShareFiles).Methods("GET")
+
 	router.NotFoundHandler = http.HandlerFunc(notFound)
 	log.Infoln("load api routers success")
 	return
