@@ -53,7 +53,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	mimeType := http.DetectContentType(buff)
 	defer file.Close()
 
-	exist := store.StorageFileExistCheck(folderID, handler.Filename)
+	exist := store.StorageFileExistUnderFolderID(folderID, handler.Filename)
 	if exist == true {
 		utils.JSONRespnseWithErr(w, &utils.ErrResourceAlreadyExist)
 		return

@@ -42,6 +42,7 @@ var appModels = []interface{}{
 	&models.User{},
 	&models.Profile{},
 	&models.StorageFile{},
+	&models.ShareFiles{},
 }
 
 // createTables create table automatic

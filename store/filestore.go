@@ -109,10 +109,10 @@ func (store *FileStore) createFoldersUnderParentID(parentID string, folders []st
 	return parent, nil
 }
 
-// StorageFileExistCheck  return true when file exist or false if not exist
-func (store *FileStore) StorageFileExistCheck(folderID, fileName string) bool {
+// StorageFileExistUnderFolderID  return true when file exist or false if not exist
+func (store *FileStore) StorageFileExistUnderFolderID(folderID, fileName string) bool {
 	existCheckStorage := &models.StorageFile{}
-	notFoundChecker := models.GetDB().Where(
+	notFoundChecker := store.DB.Where(
 		&models.StorageFile{
 			RawStorageFileInfo: models.RawStorageFileInfo{
 				FolderID: folderID,
@@ -121,6 +121,16 @@ func (store *FileStore) StorageFileExistCheck(folderID, fileName string) bool {
 			UserID: store.userID,
 		},
 	).First(&existCheckStorage).RecordNotFound()
+	if notFoundChecker == false {
+		return true
+	}
+	return false
+}
+
+// StorageFileExistCheck  return true when file exist or false if not exist
+func (store *FileStore) StorageFileExistCheck(fileID string) bool {
+	existCheckStorage := &models.StorageFile{}
+	notFoundChecker := store.DB.Model(&models.StorageFile{}).Where("id = ?", fileID).First(&existCheckStorage).RecordNotFound()
 	if notFoundChecker == false {
 		return true
 	}

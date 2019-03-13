@@ -3,6 +3,8 @@ package store
 import (
 	"time"
 
+	"github.com/jinzhu/gorm"
+
 	"github.com/Dudobird/dudo-server/config"
 	"github.com/Dudobird/dudo-server/models"
 	"github.com/Dudobird/dudo-server/utils"
@@ -17,6 +19,10 @@ type fileToken struct {
 
 // CreateShareToken create a new share file token
 func (store *FileStore) CreateShareToken(fileID string, days int) (string, error) {
+	exist := store.StorageFileExistCheck(fileID)
+	if exist != true {
+		return "", &utils.ErrResourceNotFound
+	}
 	tokenSecret := config.GetConfig().Application.Token
 	token := jwt.NewWithClaims(
 		jwt.GetSigningMethod("HS256"),
@@ -35,8 +41,14 @@ func (store *FileStore) CreateShareToken(fileID string, days int) (string, error
 	err := store.DB.Save(shareFile).Error
 	if err != nil {
 		log.Errorf("save share file info fail : %s", err)
+		return "", &utils.ErrInternalServerError
 	}
-	return token.SignedString([]byte(tokenSecret))
+	t, err := token.SignedString([]byte(tokenSecret))
+	if err != nil {
+		log.Errorf("save share file info fail : %s", err)
+		return "", &utils.ErrInternalServerError
+	}
+	return t, nil
 }
 
 // VerifyShareToken check token and return file id if success
@@ -54,4 +66,14 @@ func (store *FileStore) VerifyShareToken(token string) (string, error) {
 		return "", &utils.ErrTokenIsNotValid
 	}
 	return fileTokenObject.FileID, nil
+}
+
+// GetAllSharedFiles get all shared files
+func (store *FileStore) GetAllSharedFiles() ([]models.ShareFiles, error) {
+	files := []models.ShareFiles{}
+	err := store.DB.Model(&models.ShareFiles{}).Where("user_id = ?", store.userID).Find(&files).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return files, err
+	}
+	return files, nil
 }
