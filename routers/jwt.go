@@ -15,6 +15,7 @@ var (
 	guestURL = []string{
 		"/api/auth/signup",
 		"/api/auth/signin",
+		"/shares",
 	}
 )
 

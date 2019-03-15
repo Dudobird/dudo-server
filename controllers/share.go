@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/Dudobird/dudo-server/store"
 	"github.com/Dudobird/dudo-server/utils"
+	"github.com/gorilla/mux"
 )
 
 type shareFileInfo struct {
@@ -32,6 +34,28 @@ func CreateShareFile(w http.ResponseWriter, r *http.Request) {
 	utils.JSONMessageWithData(w, 201, "", struct {
 		Token string `json:"token"`
 	}{Token: token})
+	return
+}
+
+// GetShareFileFromToken download share file for others
+func GetShareFileFromToken(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		utils.JSONMessageWithData(w, 400, "token is empty", nil)
+		return
+	}
+	fileStore := store.NewFileStore("")
+	fileID, userID, err := fileStore.VerifyShareToken(token)
+	if err != nil {
+		utils.JSONMessageWithData(w, 400, "token is not valid", nil)
+		return
+	}
+	ctx := context.WithValue(r.Context(), utils.TokenContextKey, userID)
+	r = r.WithContext(ctx)
+	data := make(map[string]string)
+	data["id"] = fileID
+	r = mux.SetURLVars(r, data)
+	DownloadFiles(w, r)
 	return
 }
 

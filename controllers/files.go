@@ -122,10 +122,6 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	app := core.GetApp()
-	if app == nil {
-		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
-		return
-	}
 	fileMeta := &models.StorageFile{}
 	err := app.DB.Model(&models.StorageFile{}).Where("id = ? and user_id = ?", id, userID).First(fileMeta).Error
 	if err != nil {
@@ -137,13 +133,9 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 		return
 	}
-
 	tempDownloadFilePath := app.FullTempFolder + string(filepath.Separator) + fileMeta.FileName
 	storeFileName := fileMeta.ID + "_" + fileMeta.FileName
-	// Right now only allow for download file
 	if fileMeta.IsDir == true {
-		// zip folder
-		// app.Storage.DownloadFolders(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
 		store := store.NewFileStore(userID)
 		files, err := store.GetAllFiles(fileMeta.ID, string(filepath.Separator)+fileMeta.FileName)
 		if err != nil {
@@ -151,7 +143,6 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 			utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 			return
 		}
-		// download files with those infomathion
 		randomString := utils.GenRandomID("download", 5)
 		downloadFolderPath := filepath.Join(app.FullTempFolder, randomString)
 		zipFolderPath, errors := app.Storage.DownloadFolder(downloadFolderPath, fileMeta.FileName, files)

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/base64"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -14,6 +15,7 @@ import (
 
 type fileToken struct {
 	FileID string
+	UserID string
 	jwt.StandardClaims
 }
 
@@ -28,6 +30,7 @@ func (store *FileStore) CreateShareToken(fileID string, days int) (string, error
 		jwt.GetSigningMethod("HS256"),
 		&fileToken{
 			FileID: fileID,
+			UserID: store.userID,
 			StandardClaims: jwt.StandardClaims{
 				ExpiresAt: time.Now().Add(time.Hour * time.Duration(days)).Unix(),
 			},
@@ -52,20 +55,26 @@ func (store *FileStore) CreateShareToken(fileID string, days int) (string, error
 }
 
 // VerifyShareToken check token and return file id if success
-func (store *FileStore) VerifyShareToken(token string) (string, error) {
-	tokenSecret := config.GetConfig().Application.Token
+func (store *FileStore) VerifyShareToken(token string) (string, string, error) {
 	if token == "" {
-		return "", &utils.ErrTokenIsNotValid
+		return "", "", &utils.ErrTokenIsNotValid
 	}
+	pathDecodeBase64, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return "", "", &utils.ErrPostDataNotCorrect
+	}
+
+	tokenSecret := config.GetConfig().Application.Token
+	pathDecodeBase64Str := string(pathDecodeBase64)
 	fileTokenObject := &fileToken{}
-	parseToken, err := jwt.ParseWithClaims(token, fileTokenObject, func(token *jwt.Token) (interface{}, error) {
+	parseToken, err := jwt.ParseWithClaims(pathDecodeBase64Str, fileTokenObject, func(token *jwt.Token) (interface{}, error) {
 		return []byte(tokenSecret), nil
 	})
 
 	if err != nil && !parseToken.Valid {
-		return "", &utils.ErrTokenIsNotValid
+		return "", "", &utils.ErrTokenIsNotValid
 	}
-	return fileTokenObject.FileID, nil
+	return fileTokenObject.FileID, fileTokenObject.UserID, nil
 }
 
 // GetAllSharedFiles get all shared files
