@@ -11,8 +11,9 @@ import (
 )
 
 type shareFileInfo struct {
-	FileID     string `json:"file_id"`
-	ExpireDays int    `json:"expire_days"`
+	FileID      string `json:"file_id"`
+	ExpireDays  int    `json:"expire_days"`
+	Description string `json:"description"`
 }
 
 // CreateShareFile create a new shared files
@@ -47,7 +48,7 @@ func GetShareFileFromToken(w http.ResponseWriter, r *http.Request) {
 	fileStore := store.NewFileStore("")
 	fileID, userID, err := fileStore.VerifyShareToken(token)
 	if err != nil {
-		utils.JSONMessageWithData(w, 400, "token is not valid", nil)
+		utils.JSONRespnseWithErr(w, err)
 		return
 	}
 	ctx := context.WithValue(r.Context(), utils.TokenContextKey, userID)
@@ -64,10 +65,27 @@ func GetShareFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(utils.TokenContextKey).(string)
 	fileStore := store.NewFileStore(userID)
 	files, err := fileStore.GetAllSharedFiles()
-	if err == nil {
+	if err != nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 		return
 	}
-	utils.JSONMessageWithData(w, 201, "", files)
+	utils.JSONMessageWithData(w, 200, "", files)
 	return
+}
+
+// DeleteShareFile get the id from url and delete the share file reference
+func DeleteShareFile(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	userID := r.Context().Value(utils.TokenContextKey).(string)
+
+	fileStore := store.NewFileStore(userID)
+	err := fileStore.DeleteShareFilesRef(id)
+	if err != nil {
+		utils.JSONRespnseWithErr(w, err)
+		return
+	}
+	utils.JSONMessageWithData(w, 200, "delete success", nil)
+	return
+
 }

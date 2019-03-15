@@ -30,7 +30,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	store := store.NewFileStore(userID)
 	folderID, err := store.GetOrCreateFolder(folderID, filePath)
 	if err != nil {
-		utils.JSONRespnseWithErr(w, err.(*utils.CustomError))
+		utils.JSONRespnseWithErr(w, err)
 		return
 	}
 	app := core.GetApp()

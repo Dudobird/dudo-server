@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 // const for storage caculation
@@ -191,4 +193,14 @@ func addFileToZip(zipWriter *zip.Writer, filename string, topFolderPath string) 
 	}
 	_, err = io.Copy(writer, fileToZip)
 	return err
+}
+
+// ValidateUUID validate a uuid string
+// return true when is valid, or false
+func ValidateUUID(id string) bool {
+	_, err := uuid.FromString(id)
+	if err != nil {
+		return false
+	}
+	return true
 }

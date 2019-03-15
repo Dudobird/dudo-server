@@ -3,8 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"net/http"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 // Message response json data
@@ -30,8 +28,14 @@ func JSONMessageWithData(w http.ResponseWriter, status int, text string, data in
 }
 
 // JSONRespnseWithErr response with custom error
-func JSONRespnseWithErr(w http.ResponseWriter, err *CustomError) {
-	JSONRespnseWithTextMessage(w, err.Code(), err.Error())
+func JSONRespnseWithErr(w http.ResponseWriter, err error) {
+	cerr, ok := err.(*CustomError)
+	if ok == true {
+		JSONRespnseWithTextMessage(w, cerr.Code(), cerr.Error())
+		return
+	}
+	JSONRespnseWithTextMessage(w, 500, err.Error())
+	return
 }
 
 // JSONRespnseWithTextMessage will send back with status and a simple text message
@@ -49,14 +53,4 @@ func JSONResonseWithMessage(w http.ResponseWriter, message *Message) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(message.Status)
 	w.Write(data)
-}
-
-// ValidateUUID validate a uuid string
-// return true when is valid, or false
-func ValidateUUID(id string) bool {
-	_, err := uuid.FromString(id)
-	if err != nil {
-		return false
-	}
-	return true
 }
