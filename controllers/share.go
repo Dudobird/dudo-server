@@ -27,7 +27,7 @@ func CreateShareFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fileStore := store.NewFileStore(userID)
-	token, err := fileStore.CreateShareToken(sfi.FileID, sfi.ExpireDays)
+	token, err := fileStore.CreateShareToken(sfi.FileID, sfi.ExpireDays, sfi.Description)
 	if err != nil {
 		utils.JSONRespnseWithErr(w, (err).(*utils.CustomError))
 		return

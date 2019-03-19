@@ -21,7 +21,7 @@ type fileToken struct {
 }
 
 // CreateShareToken create a new share file token
-func (store *FileStore) CreateShareToken(fileID string, days int) (string, error) {
+func (store *FileStore) CreateShareToken(fileID string, days int, description string) (string, error) {
 	exist := store.StorageFileExistCheck(fileID)
 	if exist != true {
 		return "", &utils.ErrResourceNotFound
@@ -40,10 +40,11 @@ func (store *FileStore) CreateShareToken(fileID string, days int) (string, error
 		},
 	)
 	shareFile := &models.ShareFiles{
-		ID:     id,
-		FileID: fileID,
-		Expire: time.Now().AddDate(0, 0, days),
-		UserID: store.userID,
+		ID:          id,
+		FileID:      fileID,
+		Expire:      time.Now().AddDate(0, 0, days),
+		Description: description,
+		UserID:      store.userID,
 	}
 	err := store.DB.Save(shareFile).Error
 	if err != nil {
