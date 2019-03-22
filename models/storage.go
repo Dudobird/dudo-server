@@ -103,39 +103,6 @@ func (s *StorageFile) CreateFolder(uid string) *utils.CustomError {
 	return nil
 }
 
-// RenameFileName will rename a file or a folder
-func (s *StorageFile) RenameFileName(name string) (*StorageFile, *utils.CustomError) {
-	// valid user post data
-	if err := s.validationFileName(name); err != nil {
-		return nil, err
-	}
-	err := GetDB().First(s).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, &utils.ErrResourceNotFound
-		}
-		return nil, &utils.ErrInternalServerError
-	}
-	if s.FileName == name {
-		return s, nil
-	}
-	// query if already have some file or folder with same name
-	temp := &StorageFile{}
-	err = GetDB().Where("file_name = ? AND folder_id = ?", name, s.FolderID).First(temp).Error
-	if err != gorm.ErrRecordNotFound {
-		if err != nil {
-			return nil, &utils.ErrInternalServerError
-		}
-		return nil, &utils.ErrPostDataNotCorrect
-	}
-	s.FileName = name
-	err = GetDB().Save(s).Error
-	if err != nil {
-		return nil, &utils.ErrInternalServerError
-	}
-	return s, nil
-}
-
 // StorageFilesWithUser for controller
 type StorageFilesWithUser struct {
 	Owner   *User

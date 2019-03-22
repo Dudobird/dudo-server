@@ -188,6 +188,65 @@ func (store *FileStore) DeleteFolders(parentID string) ([]models.StorageFile, er
 	return deleteFiles, nil
 }
 
+// SearchFiles search files from metadata
+func (store *FileStore) SearchFiles(search string) ([]models.StorageFile, error) {
+	searchFiles := []models.StorageFile{}
+	err := store.DB.Model(&models.StorageFile{}).Where(
+		"user_id = ? and file_name LIKE ?",
+		store.userID,
+		"%"+search+"%",
+	).Find(&searchFiles).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return searchFiles, nil
+		}
+		return searchFiles, &utils.ErrInternalServerError
+	}
+	return searchFiles, nil
+}
+
+func (store *FileStore) validationFileName(fileName string) error {
+	if fileName == "" || len(fileName) > 100 {
+		return &utils.ErrPostDataNotCorrect
+	}
+	return nil
+}
+
+//RenameFileName rename filename with id
+func (store *FileStore) RenameFileName(id string, name string) (*models.StorageFile, error) {
+	// valid user post data
+	if err := store.validationFileName(name); err != nil {
+		return nil, err
+	}
+	file := &models.StorageFile{}
+	err := store.DB.Model(&models.StorageFile{}).Where(
+		"id = ? and user_id = ?",
+		id,
+		store.userID,
+	).First(file).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, &utils.ErrResourceNotFound
+		}
+		return nil, &utils.ErrInternalServerError
+	}
+	// query if already have some file or folder with same name
+	temp := &models.StorageFile{}
+	err = store.DB.Where("file_name = ? AND folder_id = ?", name, file.FolderID).First(temp).Error
+	if err != gorm.ErrRecordNotFound {
+		if err != nil {
+			return nil, &utils.ErrInternalServerError
+		}
+		return nil, &utils.ErrResourceAlreadyExist
+	}
+	file.FileName = name
+	err = store.DB.Save(file).Error
+	if err != nil {
+		return nil, &utils.ErrInternalServerError
+	}
+	return file, nil
+}
+
 // GetAllFiles query all files and return a map info for store the path info and file into
 func (store *FileStore) GetAllFiles(parentID string, parentName string) (map[string][]models.StorageFile, error) {
 	queryFiles := []models.StorageFile{}

@@ -65,8 +65,9 @@ func LoadRouters() (router *mux.Router, err error) {
 	router.HandleFunc("/api/shares", controllers.GetShareFiles).Methods("GET")
 	router.HandleFunc("/api/shares", controllers.CreateShareFile).Methods("POST")
 	router.HandleFunc("/api/share/{id}", controllers.DeleteShareFile).Methods("DELETE")
-
 	router.HandleFunc("/shares", controllers.GetShareFileFromToken).Methods("GET")
+
+	router.HandleFunc("/api/search/files", controllers.HandleSearchFiles).Methods("POST")
 
 	router.NotFoundHandler = http.HandlerFunc(notFound)
 	log.Infoln("load api routers success")

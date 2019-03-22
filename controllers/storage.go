@@ -42,21 +42,18 @@ func UpdateFileInfo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	userID := r.Context().Value(utils.TokenContextKey).(string)
-	sf := &models.StorageFile{
-		RawStorageFileInfo: models.RawStorageFileInfo{
-			ID: id,
-		},
-		UserID: userID,
-	}
+
 	fileInfo := &struct {
 		Name string `json:"file_name"`
 	}{}
 	err := json.NewDecoder(r.Body).Decode(fileInfo)
 	if err != nil {
+		log.Error(err)
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	data, errWithCode := sf.RenameFileName(fileInfo.Name)
+	fileStore := store.NewFileStore(userID)
+	data, errWithCode := fileStore.RenameFileName(id, fileInfo.Name)
 	if errWithCode != nil {
 		utils.JSONRespnseWithErr(w, errWithCode)
 		return
@@ -141,5 +138,29 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 		messages = append(messages, fmt.Sprintf("%s:success", file.FileName))
 	}
 	utils.JSONMessageWithData(w, 200, "", messages)
+	return
+}
+
+type searchInfo struct {
+	Search string `json:"search"`
+}
+
+// HandleSearchFiles receive post data for files search  and response results
+func HandleSearchFiles(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(utils.TokenContextKey).(string)
+	searchBody := &searchInfo{}
+	err := json.NewDecoder(r.Body).Decode(searchBody)
+	if err != nil || searchBody.Search == "" {
+		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
+		return
+	}
+	fileStore := store.NewFileStore(userID)
+	files, err := fileStore.SearchFiles(searchBody.Search)
+	if err != nil {
+		log.Errorf("search file err:%s", err)
+		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
+		return
+	}
+	utils.JSONMessageWithData(w, 200, "", files)
 	return
 }
