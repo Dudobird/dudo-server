@@ -1,7 +1,9 @@
 package store
 
 import (
+	"database/sql"
 	"encoding/base64"
+	"fmt"
 	"path/filepath"
 
 	"github.com/Dudobird/dudo-server/models"
@@ -188,19 +190,45 @@ func (store *FileStore) DeleteFolders(parentID string) ([]models.StorageFile, er
 	return deleteFiles, nil
 }
 
+//SearchResults search result return
+type SearchResults struct {
+	ParentID       string             `json:"parent_id"`
+	ParentFileName string             `json:"parent_filename"`
+	File           models.StorageFile `json:"file"`
+}
+
 // SearchFiles search files from metadata
-func (store *FileStore) SearchFiles(search string) ([]models.StorageFile, error) {
-	searchFiles := []models.StorageFile{}
-	err := store.DB.Model(&models.StorageFile{}).Where(
-		"user_id = ? and file_name LIKE ?",
-		store.userID,
-		"%"+search+"%",
-	).Find(&searchFiles).Error
+func (store *FileStore) SearchFiles(search string) ([]SearchResults, error) {
+	searchFiles := []SearchResults{}
+
+	// var parentFiles []*models.StorageFile
+	// var storageFiles []*models.StorageFile
+	queryString := `
+	SELECT P.id AS parent_id, P.file_name AS parent_filename,
+	C.id, C.file_name,C.mime_type,C.file_type,C.file_size,C.is_dir,C.created_at,C.updated_at,C.deleted_at FROM storage_files AS P RIGHT OUTER JOIN storage_files 
+	AS C ON C.folder_id=P.id where C.user_id = ? and C.file_name LIKE ?`
+	rows, err := store.DB.DB().Query(queryString, store.userID, fmt.Sprintf("%%%s%%", search))
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return searchFiles, nil
-		}
+		log.Error(err)
 		return searchFiles, &utils.ErrInternalServerError
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var pid, pfilename sql.NullString
+		child := models.StorageFile{}
+		if err := rows.Scan(&pid, &pfilename, &child.ID, &child.FileName,
+			&child.MIMEType,
+			&child.FileType,
+			&child.FileSize,
+			&child.IsDir,
+			&child.CreatedAt, &child.UpdatedAt, &child.DeletedAt); err != nil {
+			log.Error(err)
+		}
+		searchFiles = append(searchFiles, SearchResults{
+			ParentID:       pid.String,
+			ParentFileName: pfilename.String,
+			File:           child,
+		})
 	}
 	return searchFiles, nil
 }
