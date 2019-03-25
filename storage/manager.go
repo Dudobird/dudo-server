@@ -142,7 +142,7 @@ func (m *MinioManager) DownloadFolder(tempFolderPath, folderName string, files m
 				os.MkdirAll(filePath, os.ModePerm)
 				continue
 			}
-			err := m.Download(filePath, file.ID+"_"+file.FileName, file.Bucket)
+			err := m.Download(filePath, file.ID, file.Bucket)
 			if err != nil {
 				log.Errorf("download file %s error: %s", file.FileName, err)
 				errors = append(errors, err)

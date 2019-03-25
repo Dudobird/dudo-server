@@ -276,8 +276,9 @@ func (store *FileStore) RenameFileName(id string, name string) (*models.StorageF
 }
 
 // GetAllFiles query all files and return a map info for store the path info and file into
-func (store *FileStore) GetAllFiles(parentID string, parentName string) (map[string][]models.StorageFile, error) {
+func (store *FileStore) GetAllFiles(parentID string, parentName string) (map[string][]models.StorageFile, bool, error) {
 	queryFiles := []models.StorageFile{}
+	hasFiles := false
 	files := make(map[string][]models.StorageFile)
 	currentFolder := parentName
 	err := store.DB.Model(&models.StorageFile{}).Where(
@@ -286,17 +287,21 @@ func (store *FileStore) GetAllFiles(parentID string, parentName string) (map[str
 		parentID,
 	).Find(&queryFiles).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return files, nil
-		}
+		log.Errorf("download folder error:%s", err)
+		return files, hasFiles, err
 	}
-	// bug is here
+
+	if len(queryFiles) == 0 {
+		return files, hasFiles, nil
+	}
 	for _, f := range queryFiles {
 		files[currentFolder] = append(files[currentFolder], f)
 		if f.IsDir == false {
+			hasFiles = true
 			continue
 		}
-		info, err := store.GetAllFiles(f.ID, filepath.Join(currentFolder, f.FileName))
+		info, subFolderHasFiles, err := store.GetAllFiles(f.ID, filepath.Join(currentFolder, f.FileName))
+		hasFiles = hasFiles || subFolderHasFiles
 		if err != nil {
 			log.Errorf("download folder error:%s", err)
 			continue
@@ -306,5 +311,5 @@ func (store *FileStore) GetAllFiles(parentID string, parentName string) (map[str
 		}
 	}
 
-	return files, nil
+	return files, hasFiles, nil
 }

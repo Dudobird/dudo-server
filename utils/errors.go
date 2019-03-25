@@ -31,6 +31,7 @@ var (
 
 	// resources
 	ErrResourceNotFound = CustomError{error: errors.New("resource not found"), status: 404}
+	ErrEmptyFolder      = CustomError{error: errors.New("download empty folder is not allowed"), status: 400}
 
 	// sevice
 	ErrInternalServerError = CustomError{error: errors.New("internal server error"), status: 500}

@@ -68,8 +68,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 		app.Config.Application.BucketPrefix,
 		strings.ToLower(strings.TrimLeft(userID, "user_")),
 	)
-	fileName := fmt.Sprintf("%s_%s", id, handler.Filename)
-	tempFileName := app.FullTempFolder + string(filepath.Separator) + fileName
+	tempFileName := app.FullTempFolder + string(filepath.Separator) + id
 	f, err := os.OpenFile(tempFileName, os.O_WRONLY|os.O_CREATE, 0666)
 	defer func() {
 		f.Close()
@@ -83,7 +82,7 @@ func UploadFiles(w http.ResponseWriter, r *http.Request) {
 	file.Seek(0, 0)
 	size, _ := io.Copy(f, file)
 	defer f.Close()
-	path, err := app.Storage.Upload(tempFileName, fileName, bucketName)
+	path, err := app.Storage.Upload(tempFileName, id, bucketName)
 	if err != nil {
 		log.Errorf("upload to storage fail : %s", err)
 		utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
@@ -134,15 +133,21 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tempDownloadFilePath := app.FullTempFolder + string(filepath.Separator) + fileMeta.FileName
-	storeFileName := fileMeta.ID + "_" + fileMeta.FileName
 	if fileMeta.IsDir == true {
 		store := store.NewFileStore(userID)
-		files, err := store.GetAllFiles(fileMeta.ID, string(filepath.Separator)+fileMeta.FileName)
+		files, hasFiles, err := store.GetAllFiles(fileMeta.ID, string(filepath.Separator)+fileMeta.FileName)
+
 		if err != nil {
 			log.Errorf("download folder error: %s", err)
 			utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 			return
 		}
+
+		if len(files) == 0 || hasFiles == false {
+			utils.JSONRespnseWithErr(w, &utils.ErrEmptyFolder)
+			return
+		}
+
 		randomString := utils.GenRandomID("download", 5)
 		downloadFolderPath := filepath.Join(app.FullTempFolder, randomString)
 		zipFolderPath, errors := app.Storage.DownloadFolder(downloadFolderPath, fileMeta.FileName, files)
@@ -158,10 +163,10 @@ func DownloadFiles(w http.ResponseWriter, r *http.Request) {
 		downloadFilePath = zipFolderPath
 		downloadFileName = filepath.Base(zipFolderPath)
 	} else {
-		err = app.Storage.Download(tempDownloadFilePath, storeFileName, fileMeta.Bucket)
+		err = app.Storage.Download(tempDownloadFilePath, fileMeta.ID, fileMeta.Bucket)
 		if err != nil {
 			log.Errorf("down load file from storage err: %s", err)
-			log.Errorf("filename = %s, bucket = %s", storeFileName, fileMeta.Bucket)
+			log.Errorf("filename = %s, bucket = %s", fileMeta.ID, fileMeta.Bucket)
 			utils.JSONRespnseWithErr(w, &utils.ErrInternalServerError)
 			return
 		}
