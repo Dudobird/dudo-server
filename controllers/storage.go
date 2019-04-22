@@ -118,7 +118,6 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(utils.TokenContextKey).(string)
 
 	fileStore := store.NewFileStore(userID)
-	// get files for storage delete
 	files, err := fileStore.DeleteFolders(id)
 	if err != nil {
 		log.Errorf("delete folders fail : %s", err)
@@ -127,11 +126,10 @@ func DeleteFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	messages := []string{}
 	for _, file := range files {
-		storeFileName := file.ID + "_" + file.FileName
-		err := app.Storage.Delete(storeFileName, file.Bucket)
+		err := app.Storage.Delete(file.ID, file.Bucket)
 		if err != nil {
 			log.Errorf("delete from storage error : %s", err)
-			log.Errorf("delete detail info : %s %s", file.Bucket, storeFileName)
+			log.Errorf("delete detail info : %s %s", file.Bucket, file.ID)
 			messages = append(messages, fmt.Sprintf("%s:%s", file.FileName, err))
 			continue
 		}
