@@ -19,7 +19,8 @@ import (
 
 // Token contains the user authenticate information
 type Token struct {
-	UserID string
+	UserID  string
+	IsAdmin bool
 	jwt.StandardClaims
 }
 
@@ -90,7 +91,8 @@ func (u *User) createToken() (string, error) {
 	token := jwt.NewWithClaims(
 		jwt.GetSigningMethod("HS256"),
 		&Token{
-			UserID: u.ID,
+			UserID:  u.ID,
+			IsAdmin: u.RoleID == AdminRoleID,
 			StandardClaims: jwt.StandardClaims{
 				ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 			},
@@ -129,6 +131,7 @@ func (u *User) Create() *utils.Message {
 
 	token, err := u.createToken()
 	if err != nil {
+		log.Errorf("create user token fail for %+v:%s", u, err)
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
 	u.Token = token
@@ -143,7 +146,6 @@ func (u *User) Create() *utils.Message {
 // or return forbidden etc message
 func Login(email, password string) *utils.Message {
 	account := &User{}
-	tokenSecret := config.GetConfig().Application.Token
 	tempAccout := &User{
 		Email:    email,
 		Password: password,
@@ -168,10 +170,10 @@ func Login(email, password string) *utils.Message {
 
 	account.Password = ""
 
-	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), &Token{UserID: account.ID})
-	tokenString, _ := token.SignedString([]byte(tokenSecret))
-	account.Token = tokenString
-
+	// token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), &Token{UserID: account.ID,IsAdmin:account.RoleID == AdminRoleID})
+	// tokenString, _ := token.SignedString([]byte(tokenSecret))
+	token, _ := account.createToken()
+	account.Token = token
 	message := utils.NewMessage(http.StatusOK, "login success")
 	message.Data = account
 	return message
@@ -250,9 +252,22 @@ func GetUserWithEmail(email string) (*User, *utils.CustomError) {
 // InsertAdminUser insert a new admin account
 func InsertAdminUser(email string, password string) error {
 	account := &User{Email: email, Password: password, RoleID: AdminRoleID}
+	log.Infof("insert admin email=%s password=%s", email, password)
 	message := account.Create()
 	if message.Status != http.StatusCreated {
+		log.Errorf("insert admin fail: %+v", message)
 		return errors.New(message.Message)
 	}
 	return nil
+}
+
+// GetUsers get all users info
+func GetUsers(page, size int) ([]User, error) {
+	users := []User{}
+	err := GetDB().Model(&User{}).Offset(page * size).Limit(size).Find(&users).Error
+	if err == nil || err == gorm.ErrRecordNotFound {
+		return users, err
+	}
+	log.Errorf("admin get user list error : %s", err)
+	return nil, err
 }

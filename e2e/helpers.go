@@ -72,6 +72,12 @@ var testUser = &models.User{
 	Password: "123456",
 }
 
+// var testAdminUser models.User
+var testAdminUser = &models.User{
+	Email:    "admin@example.com",
+	Password: "123456",
+}
+
 // UserID save created user id
 var UserID string
 
@@ -87,9 +93,16 @@ type UserResponse struct {
 	}
 }
 
-func signUpTestUser(app *core.App) (*UserResponse, error) {
-	user := testUser.ToJSONBytes()
-	req, _ := http.NewRequest("POST", "/api/auth/signup", bytes.NewBuffer(user))
+func insertAdminUser(user *models.User) {
+	err := models.InsertAdminUser(user.Email, user.Password)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func signUp(user *models.User) (*UserResponse, error) {
+	u := user.ToJSONBytes()
+	req, _ := http.NewRequest("POST", "/api/auth/signup", bytes.NewBuffer(u))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 	app.Router.ServeHTTP(rr, req)
@@ -102,6 +115,32 @@ func signUpTestUser(app *core.App) (*UserResponse, error) {
 		return &message, nil
 	}
 	return nil, fmt.Errorf("sign up user fail with code %d", rr.Code)
+}
+
+func signIn(user *models.User) (*UserResponse, error) {
+	u := user.ToJSONBytes()
+	req, _ := http.NewRequest("POST", "/api/auth/signin", bytes.NewBuffer(u))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	app.Router.ServeHTTP(rr, req)
+	message := UserResponse{}
+	if http.StatusOK == rr.Code {
+		if err := json.NewDecoder(rr.Body).Decode(&message); err != nil {
+			return nil, err
+		}
+		UserID = message.Data.ID
+		return &message, nil
+	}
+	return nil, fmt.Errorf("sign in user fail with code %d", rr.Code)
+}
+
+func signUpAdminUser(app *core.App) (*UserResponse, error) {
+	insertAdminUser(testAdminUser)
+	return signIn(testAdminUser)
+}
+
+func signUpTestUser(app *core.App) (*UserResponse, error) {
+	return signUp(testUser)
 }
 
 func tearDownUser(app *core.App) {

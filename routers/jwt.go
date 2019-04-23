@@ -45,7 +45,6 @@ func jwtAuthenticationMiddleware(next http.Handler) http.Handler {
 		tokenFromHeader := splitted[1]
 
 		userToken := &models.Token{}
-
 		token, err := jwt.ParseWithClaims(tokenFromHeader, userToken, func(token *jwt.Token) (interface{}, error) {
 			return []byte(tokenSecrect), nil
 		})
@@ -58,8 +57,8 @@ func jwtAuthenticationMiddleware(next http.Handler) http.Handler {
 			utils.JSONRespnseWithTextMessage(w, http.StatusUnauthorized, "token valid fail")
 			return
 		}
-		ctx := context.WithValue(r.Context(), utils.TokenContextKey, userToken.UserID)
-		r = r.WithContext(ctx)
+		r = r.WithContext(context.WithValue(r.Context(), utils.TokenContextKey, userToken.UserID))
+		r = r.WithContext(context.WithValue(r.Context(), utils.AdminContextKey, userToken.IsAdmin))
 		next.ServeHTTP(w, r)
 	})
 }

@@ -17,7 +17,8 @@ docker-compose up
 docker exec -it $(docker ps --filter "name=dudo-server_mysql_1" -q) bash
 (win10下面需要使用winpty docker exec ...)
 
-mysql -u root -p root
+# 默认密码为root
+mysql -u root -p
 CREATE DATABASE `dudo-test` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 GRANT ALL PRIVILEGES ON `dudo-test`.* TO 'dudouser'@'%' IDENTIFIED BY 'dudoadmin' WITH GRANT OPTION;
 FLUSH PRIVILEGES;

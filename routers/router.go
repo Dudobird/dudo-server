@@ -1,27 +1,14 @@
 package routers
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/Dudobird/dudo-server/controllers"
-	"github.com/Dudobird/dudo-server/core"
 	"github.com/Dudobird/dudo-server/utils"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
-
-const appContextKey = utils.ContextToken("App")
-
-func appBindMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app := core.GetApp()
-		ctx := context.WithValue(r.Context(), appContextKey, app)
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-	})
-}
 
 func notFound(w http.ResponseWriter, r *http.Request) {
 	utils.JSONMessageWithData(w, http.StatusNotFound, "url not exist", nil)
@@ -66,6 +53,12 @@ func LoadRouters() (router *mux.Router, err error) {
 	router.HandleFunc("/api/shares", controllers.CreateShareFile).Methods("POST")
 	router.HandleFunc("/api/share/{id}", controllers.DeleteShareFile).Methods("DELETE")
 	router.HandleFunc("/shares", controllers.GetShareFileFromToken).Methods("GET")
+
+	adminRouter := router.PathPrefix("/api/admin").Subrouter()
+	adminRouter.Use(adminMiddleware)
+	adminRouter.HandleFunc("/users", controllers.GetAdminUsers).Methods("GET")
+	// router.HandleFunc("/api/admin/shares", controllers.GetAdminShares).Methods("GET")
+	// router.HandleFunc("/api/admin/files", controllers.GetAdminFiles).Methods("GET")
 
 	router.HandleFunc("/api/search/files", controllers.HandleSearchFiles).Methods("POST")
 
