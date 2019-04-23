@@ -166,8 +166,6 @@ func (store *FileStore) DeleteFolders(parentID string) ([]models.StorageFile, er
 		}
 		return pendingDeleteFiles, err
 	}
-	// delete in database
-	// make sure all file belone to this user
 	for _, f := range pendingDeleteFiles {
 		if f.UserID != store.userID {
 			continue
@@ -184,7 +182,6 @@ func (store *FileStore) DeleteFolders(parentID string) ([]models.StorageFile, er
 				deleteFiles = append(deleteFiles, files...)
 			}
 		}
-		// delete direct only in database
 		store.DB.Unscoped().Delete(f)
 	}
 	return deleteFiles, nil

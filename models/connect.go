@@ -39,9 +39,23 @@ func InitDBConnection() (*gorm.DB, error) {
 	}
 	log.Infoln("connect database success")
 	log.Infoln("start database automigrate")
-	db.AutoMigrate(&User{}, &Profile{}, &StorageFile{}, &ShareFiles{})
+	db.AutoMigrate(&User{}, &Profile{}, &StorageFile{}, &ShareFiles{}, &Role{})
 	log.Infoln("database auto migrate success")
+
+	// insert default data
+	InsertDefaultRoles(db)
+
 	return db, db.DB().Ping()
+}
+
+// InsertDefaultData insert or update default data
+func InsertDefaultData(db *gorm.DB) error {
+	// insert roles data
+	err := InsertDefaultRoles(db)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetDB will return a local db variable which init before

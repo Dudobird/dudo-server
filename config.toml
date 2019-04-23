@@ -16,6 +16,8 @@ tempfolder = "temp"
 # bucket prefix
 bucket_prefix= "dudo"
 
+# default user storage limit
+# it could be 1TB，1GB, 100MB, 10MB etc... 
 default_disk_limit="5GB"
 
 default_profile_image="/images/default.jpg"

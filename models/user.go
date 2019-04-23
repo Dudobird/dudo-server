@@ -31,6 +31,7 @@ type User struct {
 	DeletedAt *time.Time
 	Email     string `json:"email" gorm:"not null;type:varchar(100);unique_index"`
 	Password  string `json:"password" gorm:"not null"`
+	RoleID    uint
 	Token     string `json:"token" sql:"-"`
 	// some relation to other modals
 	Files   []StorageFile `json:"-"`
@@ -106,6 +107,10 @@ func (u *User) Create() *utils.Message {
 	if status, err := u.CheckIfEmailExist(); status == true || err != nil {
 		return utils.NewMessage(http.StatusBadRequest, err.Error())
 	}
+	// default user level
+	if u.RoleID == 0 {
+		u.RoleID = UserRoleID
+	}
 	hashedPasswd, _ := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	u.Password = string(hashedPasswd)
 	u.ID = utils.GenRandomID("user", 12)
@@ -121,11 +126,7 @@ func (u *User) Create() *utils.Message {
 		log.Errorf("server sql fail for %+v:%s", u, err)
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
-	err = GetDB().Save(u).Error
-	if err != nil {
-		log.Errorf("server save account fail for %+v:%s", u, err)
-		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
-	}
+
 	token, err := u.createToken()
 	if err != nil {
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
@@ -244,4 +245,14 @@ func GetUserWithEmail(email string) (*User, *utils.CustomError) {
 	}
 	account.Password = ""
 	return account, nil
+}
+
+// InsertAdminUser insert a new admin account
+func InsertAdminUser(email string, password string) error {
+	account := &User{Email: email, Password: password, RoleID: AdminRoleID}
+	message := account.Create()
+	if message.Status != http.StatusCreated {
+		return errors.New(message.Message)
+	}
+	return nil
 }

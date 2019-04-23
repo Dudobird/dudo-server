@@ -75,6 +75,10 @@ func (app *App) init(configFile string) (err error) {
 	if err != nil {
 		return
 	}
+	err = models.InsertDefaultData(db)
+	if err != nil {
+		return
+	}
 	app.DB = db
 	app.Storage = storage.InitStorageManager()
 	if err != nil {
