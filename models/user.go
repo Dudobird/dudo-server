@@ -32,7 +32,7 @@ type User struct {
 	DeletedAt *time.Time
 	Email     string `json:"email" gorm:"not null;type:varchar(100);unique_index"`
 	Password  string `json:"password" gorm:"not null"`
-	RoleID    uint
+	RoleID    uint   `json:"roleid"`
 	Token     string `json:"token" sql:"-"`
 	// some relation to other modals
 	Files   []StorageFile `json:"-"`
@@ -261,13 +261,40 @@ func InsertAdminUser(email string, password string) error {
 	return nil
 }
 
+// UserForAdminListResponse for admin list query response
+type UserForAdminListResponse struct {
+	ID            string `json:"id"`
+	Email         string `json:"email"`
+	Level         string `json:"level"`
+	DiskLimit     string `json:"disk_limit"`
+	UsageDiskSize string `json:"usage_disk_size"`
+}
+
 // GetUsers get all users info
-func GetUsers(page, size int) ([]User, error) {
-	users := []User{}
-	err := GetDB().Model(&User{}).Offset(page * size).Limit(size).Find(&users).Error
-	if err == nil || err == gorm.ErrRecordNotFound {
+func GetUsers(page, size int) ([]UserForAdminListResponse, error) {
+	users := []UserForAdminListResponse{}
+	rows, err := db.Table("users").Select("users.id, users.email, users.role_id, profiles.disk_limit,profiles.usage_disk_size").Joins("left join profiles on profiles.user_id = users.id").Rows()
+	if err == gorm.ErrRecordNotFound {
 		return users, err
 	}
-	log.Errorf("admin get user list error : %s", err)
-	return nil, err
+	if err != nil {
+		log.Errorf("admin get user list error : %s", err)
+		return nil, err
+	}
+
+	var id, email string
+	var levelID int
+	var diskLimit, usageDiskSize float64
+	for rows.Next() {
+		rows.Scan(&id, &email, &levelID, &diskLimit, &usageDiskSize)
+		users = append(users, UserForAdminListResponse{
+			ID:            id,
+			Email:         email,
+			Level:         GetRoleNameFromID(levelID),
+			DiskLimit:     utils.GetReadableFileSize(diskLimit),
+			UsageDiskSize: utils.GetReadableFileSize(usageDiskSize),
+		})
+	}
+
+	return users, err
 }

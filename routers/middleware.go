@@ -2,7 +2,6 @@ package routers
 
 import (
 	"context"
-	"log"
 	"net/http"
 
 	"github.com/Dudobird/dudo-server/core"
@@ -24,7 +23,6 @@ func adminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// adminOnly return true if user is a administrator
 		isAdmin := r.Context().Value(utils.AdminContextKey).(bool)
-		log.Printf("isAdmin=%v", isAdmin)
 		if isAdmin != true {
 			utils.JSONRespnseWithTextMessage(w, http.StatusUnauthorized, "admin only")
 			return

@@ -17,6 +17,21 @@ const (
 	MonitorRoleID = 3
 )
 
+// RoleToString convert role int to string
+var RoleToString = map[int]string{
+	AdminRoleID:   "admin",
+	UserRoleID:    "user",
+	MonitorRoleID: "monitor",
+}
+
+// GetRoleNameFromID get a role name from id
+func GetRoleNameFromID(id int) string {
+	if name, ok := RoleToString[id]; ok {
+		return name
+	}
+	return ""
+}
+
 // Roles for default insert
 var (
 	AdminRole = Role{
