@@ -46,10 +46,12 @@ func (u *User) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Role        string `json:"role"`
 		SoftDeleted bool   `json:"isSoftDeleted"`
+		IsAdmin     bool   `json:"isAdmin"`
 		*AliasStruct
 	}{
 		Role:        RoleToString[int(u.RoleID)],
 		SoftDeleted: u.DeletedAt != nil,
+		IsAdmin:     u.IsAdmin(),
 		AliasStruct: (*AliasStruct)(u),
 	})
 }
@@ -121,8 +123,12 @@ func (u *User) createToken() (string, error) {
 	return token.SignedString([]byte(tokenSecret))
 }
 
-// Create will valid user infomation and create it
-func (u *User) Create() *utils.Message {
+// SignUp will valid user infomation and create it
+func SignUp(email, password string, roleID int) *utils.Message {
+	u := User{
+		Email:    email,
+		Password: password,
+	}
 	if status, message := u.Validate(); status != true {
 		return utils.NewMessage(http.StatusBadRequest, message)
 	}
@@ -155,7 +161,6 @@ func (u *User) Create() *utils.Message {
 		return utils.NewMessage(http.StatusInternalServerError, "server create account fail")
 	}
 	u.Token = token
-	u.Password = ""
 	message := utils.NewMessage(http.StatusCreated, "account create success")
 	message.Data = u
 	return message
@@ -271,9 +276,8 @@ func GetUserWithEmail(email string) (*User, *utils.CustomError) {
 
 // InsertAdminUser insert a new admin account
 func InsertAdminUser(email string, password string) error {
-	account := &User{Email: email, Password: password, RoleID: AdminRoleID}
 	log.Infof("insert admin email=%s password=%s", email, password)
-	message := account.Create()
+	message := SignUp(email, password, AdminRoleID)
 	if message.Status != http.StatusCreated {
 		log.Errorf("insert admin fail: %+v", message)
 		return errors.New(message.Message)

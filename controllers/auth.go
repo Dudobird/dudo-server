@@ -8,34 +8,35 @@ import (
 	"github.com/Dudobird/dudo-server/utils"
 )
 
+type authInfo struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	RoleID   int    `json:"roleid"`
+}
+
 // CreateUser will create a new user based received json object
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	account := &models.User{}
-	err := json.NewDecoder(r.Body).Decode(account)
+	data := authInfo{}
+	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	message := account.Create()
+	message := models.SignUp(data.Email, data.Password, data.RoleID)
 	utils.JSONResonseWithMessage(w, message)
-}
-
-type loginPasswordInfo struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 // Login will get user email and password from json object
 // if user authentication information is correct, send back 200
 // else send 403 forbidden
 func Login(w http.ResponseWriter, r *http.Request) {
-	loginData := loginPasswordInfo{}
-	err := json.NewDecoder(r.Body).Decode(&loginData)
+	data := authInfo{}
+	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	message := models.Login(loginData.Email, loginData.Password)
+	message := models.Login(data.Email, data.Password)
 	utils.JSONResonseWithMessage(w, message)
 }
 
