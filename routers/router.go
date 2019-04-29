@@ -56,7 +56,10 @@ func LoadRouters() (router *mux.Router, err error) {
 
 	adminRouter := router.PathPrefix("/api/admin").Subrouter()
 	adminRouter.Use(adminMiddleware)
-	adminRouter.HandleFunc("/users", controllers.GetAdminUsers).Methods("GET")
+	adminRouter.HandleFunc("/users", controllers.AdminGetUsers).Methods("GET")
+	adminRouter.HandleFunc("/users/{id}", controllers.AdminDeleteUser).Methods("DELETE")
+	adminRouter.HandleFunc("/users/{id}/limit", controllers.AdminChangeUserStorageLimit).Methods("PUT")
+	adminRouter.HandleFunc("/users/{id}/password", controllers.AdminChangeUserPassword).Methods("PUT")
 	// router.HandleFunc("/api/admin/shares", controllers.GetAdminShares).Methods("GET")
 	// router.HandleFunc("/api/admin/files", controllers.GetAdminFiles).Methods("GET")
 

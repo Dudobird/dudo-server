@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -26,21 +27,40 @@ type Token struct {
 
 // User include user authenticate information
 type User struct {
-	ID        string    `json:"id" gorm:"primary_key"`
-	CreatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
-	UpdatedAt time.Time `gorm:"DEFAULT:current_timestamp"`
-	DeletedAt *time.Time
-	Email     string `json:"email" gorm:"not null;type:varchar(100);unique_index"`
-	Password  string `json:"password" gorm:"not null"`
-	RoleID    uint   `json:"roleid"`
-	Token     string `json:"token" sql:"-"`
+	ID        string     `json:"id" gorm:"primary_key"`
+	CreatedAt time.Time  `json:"created_at" gorm:"DEFAULT:current_timestamp"`
+	UpdatedAt time.Time  `json:"updated_at" gorm:"DEFAULT:current_timestamp"`
+	DeletedAt *time.Time `json:"deleted_at"`
+	Email     string     `json:"email" gorm:"not null;type:varchar(100);unique_index"`
+	Password  string     `json:"-" gorm:"not null"`
+	RoleID    uint       `json:"roleid"`
+	Token     string     `json:"token" sql:"-"`
 	// some relation to other modals
 	Files   []StorageFile `json:"-"`
-	Profile Profile       `json:"-"`
+	Profile Profile       `json:"profiles"`
+}
+
+// MarshalJSON for transfer user to readable json
+func (u *User) MarshalJSON() ([]byte, error) {
+	type AliasStruct User
+	return json.Marshal(&struct {
+		Role        string `json:"role"`
+		SoftDeleted bool   `json:"isSoftDeleted"`
+		*AliasStruct
+	}{
+		Role:        RoleToString[int(u.RoleID)],
+		SoftDeleted: u.DeletedAt != nil,
+		AliasStruct: (*AliasStruct)(u),
+	})
+}
+
+// IsAdmin return if the user is admin
+func (u *User) IsAdmin() bool {
+	return u.RoleID == AdminRoleID
 }
 
 // ToJSONBytes will format the accout information to json []byte
-// use only in test
+// **use only in test**
 func (u *User) ToJSONBytes() []byte {
 	return []byte(fmt.Sprintf(`{"email":"%s","password":"%s"}`, u.Email, u.Password))
 }
@@ -263,38 +283,62 @@ func InsertAdminUser(email string, password string) error {
 
 // UserForAdminListResponse for admin list query response
 type UserForAdminListResponse struct {
-	ID            string `json:"id"`
-	Email         string `json:"email"`
-	Level         string `json:"level"`
+	ID    string `json:"id"`
+	Email string `json:"email"`
+	Level string `json:"level"`
+	// DeletedAt     string `json:"deletedAt"`
 	DiskLimit     string `json:"disk_limit"`
 	UsageDiskSize string `json:"usage_disk_size"`
 }
 
 // GetUsers get all users info
-func GetUsers(page, size int) ([]UserForAdminListResponse, error) {
-	users := []UserForAdminListResponse{}
-	rows, err := db.Table("users").Select("users.id, users.email, users.role_id, profiles.disk_limit,profiles.usage_disk_size").Joins("left join profiles on profiles.user_id = users.id").Rows()
-	if err == gorm.ErrRecordNotFound {
-		return users, err
-	}
-	if err != nil {
-		log.Errorf("admin get user list error : %s", err)
-		return nil, err
-	}
-
-	var id, email string
-	var levelID int
-	var diskLimit, usageDiskSize float64
-	for rows.Next() {
-		rows.Scan(&id, &email, &levelID, &diskLimit, &usageDiskSize)
-		users = append(users, UserForAdminListResponse{
-			ID:            id,
-			Email:         email,
-			Level:         GetRoleNameFromID(levelID),
-			DiskLimit:     utils.GetReadableFileSize(diskLimit),
-			UsageDiskSize: utils.GetReadableFileSize(usageDiskSize),
-		})
-	}
-
+func GetUsers(page, size int, search string) ([]User, error) {
+	users := []User{}
+	err := db.Unscoped().Preload("Profile").Model(&User{}).Where("users.email LIKE ?", "%"+search+"%").Offset(page * size).Limit(size).Find(&users).Error
 	return users, err
+}
+
+// DeleteUserWithID soft delete user
+func DeleteUserWithID(id string, isSoft bool) error {
+	// soft delete
+	if isSoft == true {
+		user := User{}
+		err := db.Unscoped().Where("id = ?", id).First(&user).Error
+
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return utils.ErrUserNotFound
+			}
+			return utils.ErrInternalServerError
+		}
+		if user.IsAdmin() {
+			return utils.ErrDeleteAdminIsNotAllowed
+		}
+		if user.DeletedAt != nil {
+			user.DeletedAt = nil
+		} else {
+			now := time.Now()
+			user.DeletedAt = &now
+		}
+		return db.Unscoped().Where("id = ?", id).Save(&user).Error
+	}
+	return db.Unscoped().Where("id = ?", id).Delete(&User{}).Error
+}
+
+// ChangeUserPassword  change user password
+func ChangeUserPassword(id string, password string) error {
+	user := User{}
+	err := GetDB().Table("users").Where("id = ?", id).First(&user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return utils.ErrUserNotFound
+		}
+		return utils.ErrInternalServerError
+	}
+	hashedPasswd, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return utils.ErrInternalServerError
+	}
+	user.Password = string(hashedPasswd)
+	return db.Unscoped().Where("id = ?", id).Save(&user).Error
 }

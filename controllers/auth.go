@@ -20,17 +20,22 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	utils.JSONResonseWithMessage(w, message)
 }
 
+type loginPasswordInfo struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 // Login will get user email and password from json object
 // if user authentication information is correct, send back 200
 // else send 403 forbidden
 func Login(w http.ResponseWriter, r *http.Request) {
-	account := &models.User{}
-	err := json.NewDecoder(r.Body).Decode(account)
+	loginData := loginPasswordInfo{}
+	err := json.NewDecoder(r.Body).Decode(&loginData)
 	if err != nil {
 		utils.JSONRespnseWithErr(w, &utils.ErrPostDataNotCorrect)
 		return
 	}
-	message := models.Login(account.Email, account.Password)
+	message := models.Login(loginData.Email, loginData.Password)
 	utils.JSONResonseWithMessage(w, message)
 }
 

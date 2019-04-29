@@ -39,4 +39,7 @@ var (
 	ErrValidationForProfileName   = CustomError{error: errors.New("name lenth must greate than 3 and less than 20"), status: 400}
 	ErrValidationOverMaxShareDate = CustomError{error: errors.New("share files must less than 90 days"), status: 400}
 	ErrTokenIsNotValid            = CustomError{error: errors.New("token is not valid"), status: 400}
+
+	// admin
+	ErrDeleteAdminIsNotAllowed = CustomError{error: errors.New("delete admin user is not allowed"), status: 400}
 )
